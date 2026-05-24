@@ -17,6 +17,7 @@ import androidx.work.WorkManager
 import com.ultimaterecovery.pro.data.local.database.UltimateRecoveryDatabase
 import com.ultimaterecovery.pro.engine.root.RootManager
 import com.ultimaterecovery.pro.utils.backup.BackupManager
+import com.ultimaterecovery.pro.utils.recyclebin.RecycleBinCleanupWorker
 import com.ultimaterecovery.pro.utils.recyclebin.SmartRecycleBin
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -130,20 +131,43 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
 
-        // 1. Initialize Timber logging
-        initTimber()
+        // Install uncaught exception handler to prevent hard crashes
+        installCrashHandler()
 
-        // 2. Initialize notification channels (required before any foreground service)
-        setupNotificationChannels()
+        try {
+            // 1. Initialize Timber logging
+            initTimber()
+        } catch (e: Exception) {
+            // Timber init failure should not crash the app
+        }
 
-        // 3. Apply theme based on settings
-        initTheme()
+        try {
+            // 2. Initialize notification channels (required before any foreground service)
+            setupNotificationChannels()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to setup notification channels")
+        }
 
-        // 4. Schedule periodic background tasks
-        schedulePeriodicTasks()
+        try {
+            // 3. Apply theme based on settings
+            initTheme()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to init theme")
+        }
 
-        // 5. Check root availability asynchronously
-        checkRootAvailability()
+        try {
+            // 4. Schedule periodic background tasks
+            schedulePeriodicTasks()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to schedule periodic tasks")
+        }
+
+        try {
+            // 5. Check root availability asynchronously
+            checkRootAvailability()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to check root availability")
+        }
 
         Timber.i("$TAG initialized successfully")
     }
@@ -189,7 +213,7 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
     fun setupNotificationChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
         val channels = listOf(
             NotificationChannel(
@@ -251,62 +275,66 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
      * enqueued once and survive app restarts.
      */
     fun schedulePeriodicTasks() {
-        val workManager = WorkManager.getInstance(this)
+        try {
+            val workManager = WorkManager.getInstance(this)
 
-        // ── Recycle Bin Auto-Cleanup ────────────────
-        val cleanupConstraints = Constraints.Builder()
-            .setRequiresBatteryNotLow(true)
-            .setRequiresDeviceIdle(false)
-            .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
-            .build()
-
-        val cleanupWork = PeriodicWorkRequestBuilder<RecycleBinCleanupWorker>(
-            24, TimeUnit.HOURS
-        )
-            .setConstraints(cleanupConstraints)
-            .setBackoffCriteria(
-                androidx.work.BackoffPolicy.EXPONENTIAL,
-                30, TimeUnit.MINUTES
-            )
-            .build()
-
-        workManager.enqueueUniquePeriodicWork(
-            WORK_RECYCLE_BIN_CLEANUP,
-            ExistingPeriodicWorkPolicy.KEEP,
-            cleanupWork
-        )
-
-        Timber.d("Scheduled recycle bin auto-cleanup (24h interval)")
-
-        // ── Auto-Backup ────────────────────────────
-        // Only schedule if auto-backup is enabled in settings
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val autoBackupEnabled = prefs.getBoolean("auto_backup_enabled", false)
-
-        if (autoBackupEnabled) {
-            val backupConstraints = Constraints.Builder()
+            // ── Recycle Bin Auto-Cleanup ────────────────
+            val cleanupConstraints = Constraints.Builder()
                 .setRequiresBatteryNotLow(true)
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .setRequiresCharging(true)
+                .setRequiresDeviceIdle(false)
+                .setRequiredNetworkType(NetworkType.NOT_REQUIRED)
                 .build()
 
-            val backupWork = PeriodicWorkRequestBuilder<AutoBackupWorker>(
+            val cleanupWork = PeriodicWorkRequestBuilder<RecycleBinCleanupWorker>(
                 24, TimeUnit.HOURS
             )
-                .setConstraints(backupConstraints)
+                .setConstraints(cleanupConstraints)
                 .setBackoffCriteria(
                     androidx.work.BackoffPolicy.EXPONENTIAL,
-                    1, TimeUnit.HOURS
+                    30, TimeUnit.MINUTES
                 )
                 .build()
 
             workManager.enqueueUniquePeriodicWork(
-                WORK_AUTO_BACKUP,
+                WORK_RECYCLE_BIN_CLEANUP,
                 ExistingPeriodicWorkPolicy.KEEP,
-                backupWork
+                cleanupWork
             )
 
-            Timber.d("Scheduled auto-backup (24h interval)")
+            Timber.d("Scheduled recycle bin auto-cleanup (24h interval)")
+
+            // ── Auto-Backup ────────────────────────────
+            // Only schedule if auto-backup is enabled in settings
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val autoBackupEnabled = prefs.getBoolean("auto_backup_enabled", false)
+
+            if (autoBackupEnabled) {
+                val backupConstraints = Constraints.Builder()
+                    .setRequiresBatteryNotLow(true)
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .setRequiresCharging(true)
+                    .build()
+
+                val backupWork = PeriodicWorkRequestBuilder<AutoBackupWorker>(
+                    24, TimeUnit.HOURS
+                )
+                    .setConstraints(backupConstraints)
+                    .setBackoffCriteria(
+                        androidx.work.BackoffPolicy.EXPONENTIAL,
+                        1, TimeUnit.HOURS
+                    )
+                    .build()
+
+                workManager.enqueueUniquePeriodicWork(
+                    WORK_AUTO_BACKUP,
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    backupWork
+                )
+
+                Timber.d("Scheduled auto-backup (24h interval)")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to schedule periodic tasks")
         }
     }
 
@@ -376,23 +404,8 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
      * Delegates to [SmartRecycleBin.autoCleanup] to purge expired
      * items and enforce storage limits.
      */
-    class RecycleBinCleanupWorker(
-        context: Context,
-        workerParams: androidx.work.WorkerParameters
-    ) : androidx.work.CoroutineWorker(context, workerParams) {
-
-        override suspend fun doWork(): Result {
-            return try {
-                // In production, inject SmartRecycleBin via Hilt's WorkerFactory
-                // and call smartRecycleBin.autoCleanup()
-                Timber.d("Recycle bin auto-cleanup triggered")
-                Result.success()
-            } catch (e: Exception) {
-                Timber.w(e, "Recycle bin cleanup failed")
-                if (runAttemptCount < 3) Result.retry() else Result.failure()
-            }
-        }
-    }
+    // RecycleBinCleanupWorker moved to com.ultimaterecovery.pro.utils.recyclebin package
+    // to avoid duplicate class conflict with SmartRecycleBin.kt
 
     /**
      * WorkManager Worker for periodic auto-backup.
@@ -437,6 +450,26 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
             if (t != null && priority >= android.util.Log.ERROR) {
                 // Log exception to crash reporting
             }
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // Crash protection
+    // ──────────────────────────────────────────────
+
+    /**
+     * Installs a default uncaught exception handler to prevent hard crashes.
+     *
+     * Catches any uncaught exceptions on the main thread and logs them
+     * instead of letting the app crash with an ANR dialog.
+     */
+    private fun installCrashHandler() {
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            Timber.e(throwable, "Uncaught exception on thread: ${thread.name}")
+            // Forward to the default handler so the system can still handle it
+            // but avoid the ANR crash dialog if possible
+            defaultHandler?.uncaughtException(thread, throwable)
         }
     }
 }

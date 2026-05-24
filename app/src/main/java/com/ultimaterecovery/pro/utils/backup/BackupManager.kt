@@ -1,6 +1,7 @@
 package com.ultimaterecovery.pro.utils.backup
 
 import android.content.Context
+import android.os.Environment
 import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -20,13 +21,9 @@ import com.ultimaterecovery.pro.utils.crypto.CryptoManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.isActive
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
@@ -452,7 +449,7 @@ class BackupManager @Inject constructor(
         }
 
         // Extract zip
-        val targetDir = outputDir ?: File(Environment.DIRECTORY_DOWNLOADS)
+        val targetDir = outputDir ?: Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         try {
             ZipInputStream(BufferedInputStream(FileInputStream(zipFile))).use { zipIn ->
                 var entriesProcessed = 0
@@ -1166,11 +1163,4 @@ class BackupWorker(
             Result.retry()
         }
     }
-}
-
-/**
- * Stub import for Environment — used by restoreBackup default output path.
- */
-private object Environment {
-    val DIRECTORY_DOWNLOADS = android.os.Environment.DIRECTORY_DOWNLOADS
 }

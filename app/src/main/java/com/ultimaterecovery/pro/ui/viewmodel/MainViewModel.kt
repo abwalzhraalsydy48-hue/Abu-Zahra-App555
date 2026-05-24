@@ -16,6 +16,7 @@ import com.ultimaterecovery.pro.engine.scanner.IScanEngine
 import com.ultimaterecovery.pro.manager.FileManager
 import com.ultimaterecovery.pro.manager.FileManager.StorageInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -25,6 +26,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────
@@ -103,11 +106,31 @@ class MainViewModel @Inject constructor(
     // ──────────────────────────────────────────
 
     init {
-        loadStorageInfo()
-        loadQuickStats()
-        checkRootStatus()
-        observeRootState()
-        observeLastScan()
+        try {
+            loadStorageInfo()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load storage info")
+        }
+        try {
+            loadQuickStats()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to load quick stats")
+        }
+        try {
+            checkRootStatus()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to check root status")
+        }
+        try {
+            observeRootState()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to observe root state")
+        }
+        try {
+            observeLastScan()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to observe last scan")
+        }
     }
 
     // ──────────────────────────────────────────
@@ -119,8 +142,18 @@ class MainViewModel @Inject constructor(
      */
     fun loadStorageInfo() {
         viewModelScope.launch {
-            val volumes = fileManager.getStorageVolumes()
-            _uiState.value = _uiState.value.copy(storageInfo = volumes)
+            try {
+                val volumes = withContext(Dispatchers.IO) {
+                    fileManager.getStorageVolumes()
+                }
+                _uiState.value = _uiState.value.copy(storageInfo = volumes)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load storage volumes")
+                _uiState.value = _uiState.value.copy(
+                    storageInfo = emptyList(),
+                    error = "Failed to load storage info"
+                )
+            }
         }
     }
 
@@ -134,41 +167,57 @@ class MainViewModel @Inject constructor(
      */
     fun loadQuickStats() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
 
-            // Collect total recovered file stats
-            recoveredFileRepository.getStats().collect { resource ->
-                when (resource) {
-                    is Resource.Success -> {
-                        _uiState.value = _uiState.value.copy(
-                            totalRecovered = resource.data.totalCount,
-                            totalRecoveredSize = resource.data.totalSize,
-                            isLoading = false
-                        )
+                // Collect total recovered file stats
+                recoveredFileRepository.getStats().catch { e ->
+                    _uiState.value = _uiState.value.copy(
+                        error = e.message,
+                        isLoading = false
+                    )
+                }.collect { resource ->
+                    when (resource) {
+                        is Resource.Success -> {
+                            _uiState.value = _uiState.value.copy(
+                                totalRecovered = resource.data.totalCount,
+                                totalRecoveredSize = resource.data.totalSize,
+                                isLoading = false
+                            )
+                        }
+                        is Resource.Error -> {
+                            _uiState.value = _uiState.value.copy(
+                                error = resource.message,
+                                isLoading = false
+                            )
+                        }
+                        is Resource.Loading -> { /* keep current loading state */ }
                     }
-                    is Resource.Error -> {
-                        _uiState.value = _uiState.value.copy(
-                            error = resource.message,
-                            isLoading = false
-                        )
-                    }
-                    is Resource.Loading -> { /* keep current loading state */ }
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load quick stats")
+                _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
 
         // Collect per-category file counts
         viewModelScope.launch {
-            val categoryMap = mutableMapOf<FileCategory, Int>()
-            for (category in FileCategory.entries) {
-                recoveredFileRepository.getFilesByCategory(category).collect { resource ->
-                    if (resource is Resource.Success) {
-                        categoryMap[category] = resource.data.size
-                        _uiState.value = _uiState.value.copy(
-                            categoryCounts = categoryMap.toMap()
-                        )
+            try {
+                val categoryMap = mutableMapOf<FileCategory, Int>()
+                for (category in FileCategory.entries) {
+                    recoveredFileRepository.getFilesByCategory(category).catch { e ->
+                        Timber.e(e, "Failed to load category: $category")
+                    }.collect { resource ->
+                        if (resource is Resource.Success) {
+                            categoryMap[category] = resource.data.size
+                            _uiState.value = _uiState.value.copy(
+                                categoryCounts = categoryMap.toMap()
+                            )
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load category counts")
             }
         }
     }
@@ -182,10 +231,15 @@ class MainViewModel @Inject constructor(
      */
     fun checkRootStatus() {
         viewModelScope.launch {
-            val result = rootManager.isRootAvailable()
-            _uiState.value = _uiState.value.copy(
-                isRootAvailable = result.isRooted
-            )
+            try {
+                val result = rootManager.isRootAvailable()
+                _uiState.value = _uiState.value.copy(
+                    isRootAvailable = result.isRooted
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to check root status")
+                _uiState.value = _uiState.value.copy(isRootAvailable = false)
+            }
         }
     }
 
@@ -195,7 +249,9 @@ class MainViewModel @Inject constructor(
      */
     private fun observeRootState() {
         viewModelScope.launch {
-            rootManager.rootState.collect { state ->
+            rootManager.rootState.catch { e ->
+                Timber.e(e, "Failed to observe root state")
+            }.collect { state ->
                 _uiState.value = _uiState.value.copy(
                     rootState = state,
                     isRootAvailable = state is RootState.Granted || state is RootState.Available
@@ -214,7 +270,9 @@ class MainViewModel @Inject constructor(
      */
     private fun observeLastScan() {
         viewModelScope.launch {
-            scanSessionRepository.getCompletedSessions().collect { resource ->
+            scanSessionRepository.getCompletedSessions().catch { e ->
+                Timber.e(e, "Failed to observe last scan")
+            }.collect { resource ->
                 when (resource) {
                     is Resource.Success -> {
                         val lastSession = resource.data.maxByOrNull { it.endTime ?: 0L }

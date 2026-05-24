@@ -91,21 +91,64 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        _binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
 
-        setupToolbar()
-        setupNavigation()
-        setupBackNavigation()
-        observeUiState()
-        observeNavigationEvents()
-        checkAndRequestPermissions()
+        try {
+            _binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+        } catch (e: Exception) {
+            // If binding fails, we can't recover
+            return
+        }
+
+        try {
+            setupToolbar()
+        } catch (e: Exception) {
+            // Toolbar setup is non-critical
+        }
+
+        try {
+            setupNavigation()
+        } catch (e: Exception) {
+            // Navigation setup failure should not crash the app
+        }
+
+        try {
+            setupBackNavigation()
+        } catch (e: Exception) {
+            // Back navigation setup is non-critical
+        }
+
+        try {
+            observeUiState()
+        } catch (e: Exception) {
+            // UI state observation is non-critical
+        }
+
+        try {
+            observeNavigationEvents()
+        } catch (e: Exception) {
+            // Navigation event observation is non-critical
+        }
+
+        try {
+            checkAndRequestPermissions()
+        } catch (e: Exception) {
+            // Permission request can fail on some Android versions
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        checkLockScreen()
-        viewModel.checkRootStatus()
+        try {
+            checkLockScreen()
+        } catch (e: Exception) {
+            // Lock screen check failure should not crash
+        }
+        try {
+            viewModel.checkRootStatus()
+        } catch (e: Exception) {
+            // Root status check failure is non-critical
+        }
     }
 
     override fun onDestroy() {
@@ -170,24 +213,29 @@ class MainActivity : AppCompatActivity() {
     // ──────────────────────────────────────────
 
     private fun setupNavigation() {
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.navHostFragment) as NavHostFragment
-        navController = navHostFragment.navController
+        try {
+            val navHostFragment = supportFragmentManager
+                .findFragmentById(R.id.navHostFragment) as? NavHostFragment
+                ?: return
+            navController = navHostFragment.navController
 
-        // Connect BottomNavigationView with NavController
-        NavigationUI.setupWithNavController(binding.bottomNavigation, navController)
+            // Connect BottomNavigationView with NavController
+            NavigationUI.setupWithNavController(binding.bottomNavigation, navController)
 
-        // Hide bottom nav on certain destinations (e.g. preview, lock)
-        navController.addOnDestinationChangedListener { _, destination, _ ->
-            val hideNavDestinations = setOf(
-                R.id.previewActivity,
-                R.id.lockActivity
-            )
-            binding.bottomNavigation.visibility = if (destination.id in hideNavDestinations) {
-                View.GONE
-            } else {
-                View.VISIBLE
+            // Hide bottom nav on certain destinations (e.g. preview, lock)
+            navController.addOnDestinationChangedListener { _, destination, _ ->
+                val hideNavDestinations = setOf(
+                    R.id.previewActivity,
+                    R.id.lockActivity
+                )
+                binding.bottomNavigation.visibility = if (destination.id in hideNavDestinations) {
+                    View.GONE
+                } else {
+                    View.VISIBLE
+                }
             }
+        } catch (e: Exception) {
+            // Navigation setup can fail if nav graph has issues
         }
     }
 
@@ -199,8 +247,14 @@ class MainActivity : AppCompatActivity() {
     private fun setupBackNavigation() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (!navController.popBackStack()) {
-                    // At the root of the navigation graph — minimise app
+                try {
+                    if (!::navController.isInitialized || !navController.popBackStack()) {
+                        // At the root of the navigation graph — minimise app
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                    }
+                } catch (e: Exception) {
+                    // If nav controller is not available, just minimize
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
                 }
@@ -252,23 +306,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleNavigationEvent(event: MainNavigationEvent) {
-        when (event) {
-            is MainNavigationEvent.NavigateToScan -> {
-                val intent = Intent(this, ScanActivity::class.java).apply {
-                    putExtra(ScanActivity.EXTRA_SCAN_TYPE, event.scanType.name)
-                }
-                startActivity(intent)
-            }
-            is MainNavigationEvent.NavigateToRecovery -> {
-                navController.navigate(
-                    R.id.fileRecoveryFragment,
-                    Bundle().apply {
-                        putString("category", event.category.name)
+        try {
+            when (event) {
+                is MainNavigationEvent.NavigateToScan -> {
+                    val intent = Intent(this, ScanActivity::class.java).apply {
+                        putExtra(ScanActivity.EXTRA_SCAN_TYPE, event.scanType.name)
                     }
-                )
-            }
-            is MainNavigationEvent.NavigateToDeepScan -> {
-                val intent = Intent(this, ScanActivity::class.java).apply {
+                    startActivity(intent)
+                }
+                is MainNavigationEvent.NavigateToRecovery -> {
+                    if (::navController.isInitialized) {
+                        navController.navigate(
+                            R.id.fileRecoveryFragment,
+                            Bundle().apply {
+                                putString("category", event.category.name)
+                            }
+                        )
+                    }
+                }
+                is MainNavigationEvent.NavigateToDeepScan -> {
+                    val intent = Intent(this, ScanActivity::class.java).apply {
                     putExtra(ScanActivity.EXTRA_SCAN_TYPE, "DEEP")
                 }
                 startActivity(intent)
@@ -277,6 +334,9 @@ class MainActivity : AppCompatActivity() {
                 Snackbar.make(binding.root, event.message, Snackbar.LENGTH_SHORT).show()
             }
         }
+        } catch (e: Exception) {
+            // Navigation event handling failure should not crash
+        }
     }
 
     // ──────────────────────────────────────────
@@ -284,20 +344,24 @@ class MainActivity : AppCompatActivity() {
     // ──────────────────────────────────────────
 
     private fun checkAndRequestPermissions() {
-        val ungranted = requiredPermissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
+        try {
+            val ungranted = requiredPermissions.filter {
+                ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+            }
 
-        if (ungranted.isEmpty()) return
+            if (ungranted.isEmpty()) return
 
-        val shouldShowRationale = ungranted.any {
-            shouldShowRequestPermissionRationale(it)
-        }
+            val shouldShowRationale = ungranted.any {
+                shouldShowRequestPermissionRationale(it)
+            }
 
-        if (shouldShowRationale) {
-            showPermissionRationale()
-        } else {
-            permissionLauncher.launch(ungranted.toTypedArray())
+            if (shouldShowRationale) {
+                showPermissionRationale()
+            } else {
+                permissionLauncher.launch(ungranted.toTypedArray())
+            }
+        } catch (e: Exception) {
+            // Permission check can crash on certain Android versions
         }
     }
 
@@ -323,12 +387,16 @@ class MainActivity : AppCompatActivity() {
      * the user switches back from another app.
      */
     private fun checkLockScreen() {
-        val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
-        val securityLevel = prefs.getString("security_level", "NONE") ?: "NONE"
-        if (securityLevel != "NONE") {
-            // Only show lock if we're not already on the lock screen
-            val intent = Intent(this, LockActivity::class.java)
-            startActivity(intent)
+        try {
+            val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
+            val securityLevel = prefs.getString("security_level", "NONE") ?: "NONE"
+            if (securityLevel != "NONE") {
+                // Only show lock if we're not already on the lock screen
+                val intent = Intent(this, LockActivity::class.java)
+                startActivity(intent)
+            }
+        } catch (e: Exception) {
+            // Lock screen check should not crash the app
         }
     }
 }

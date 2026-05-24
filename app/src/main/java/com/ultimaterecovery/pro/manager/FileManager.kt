@@ -12,13 +12,9 @@ import com.ultimaterecovery.pro.data.repository.Resource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.isActive
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
@@ -293,21 +289,27 @@ class FileManager @Inject constructor(
      * Returns information about all available storage volumes.
      */
     fun getStorageVolumes(): List<StorageInfo> {
-        val volumes = mutableListOf<StorageInfo>()
+        return try {
+            val volumes = mutableListOf<StorageInfo>()
 
-        // Internal storage
-        val internal = Environment.getExternalStorageDirectory()
-        volumes.add(getStorageInfo(internal, isRemovable = false, label = "Internal Storage"))
+            // Internal storage
+            val internal = Environment.getExternalStorageDirectory()
+            volumes.add(getStorageInfo(internal, isRemovable = false, label = "Internal Storage"))
 
-        // SD card (if available)
-        getExternalSdCardPath()?.let { sdPath ->
-            val sdDir = File(sdPath)
-            if (sdDir.exists()) {
-                volumes.add(getStorageInfo(sdDir, isRemovable = true, label = "SD Card"))
+            // SD card (if available)
+            getExternalSdCardPath()?.let { sdPath ->
+                val sdDir = File(sdPath)
+                if (sdDir.exists()) {
+                    volumes.add(getStorageInfo(sdDir, isRemovable = true, label = "SD Card"))
+                }
             }
-        }
 
-        return volumes
+            volumes
+        } catch (e: SecurityException) {
+            emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     // ──────────────────────────────────────────────

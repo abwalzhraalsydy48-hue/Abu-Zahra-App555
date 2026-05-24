@@ -10,7 +10,6 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.ultimaterecovery.pro.utils.storage.formatFileSize
 import com.ultimaterecovery.pro.R
 import com.ultimaterecovery.pro.data.local.entity.RecoveredFileEntity.FileCategory
 import com.ultimaterecovery.pro.data.local.entity.ScanSessionEntity.ScanType
@@ -137,49 +136,57 @@ class HomeFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    renderState(state)
+                    try {
+                        renderState(state)
+                    } catch (e: Exception) {
+                        // Render state failure should not crash the fragment
+                    }
                 }
             }
         }
     }
 
     private fun renderState(state: MainUiState) {
-        // Shimmer loading
-        if (state.isLoading) {
-            binding.shimmerFrameLayout?.visibility = View.VISIBLE
-            binding.shimmerFrameLayout.startShimmer()
-            binding.nestedScrollView?.visibility = View.GONE
-        } else {
-            binding.shimmerFrameLayout?.visibility = View.GONE
-            binding.shimmerFrameLayout.stopShimmer()
-            binding.nestedScrollView?.visibility = View.VISIBLE
+        try {
+            // Shimmer loading
+            if (state.isLoading) {
+                binding.shimmerFrameLayout?.visibility = View.VISIBLE
+                binding.shimmerFrameLayout.startShimmer()
+                binding.nestedScrollView?.visibility = View.GONE
+            } else {
+                binding.shimmerFrameLayout?.visibility = View.GONE
+                binding.shimmerFrameLayout.stopShimmer()
+                binding.nestedScrollView?.visibility = View.VISIBLE
+            }
+
+            // Swipe refresh
+            binding.swipeRefresh.isRefreshing = false
+
+            // Storage usage
+            renderStorageUsage(state.storageInfo)
+
+            // Quick stats
+            binding.tvTotalRecovered.text = state.totalRecovered.toString()
+            binding.tvTotalRecoveredSize.text = formatFileSize(state.totalRecoveredSize)
+
+            // Last scan
+            state.lastScanDate?.let { timestamp ->
+                binding.tvLastScanDate.text = DateFormat.getDateTimeInstance()
+                    .format(Date(timestamp))
+                binding.tvLastScanType.text = state.lastScanType?.name ?: ""
+                binding.layoutLastScan?.visibility = View.VISIBLE
+            } ?: run {
+                binding.layoutLastScan?.visibility = View.GONE
+            }
+
+            // Category counts
+            renderCategoryCounts(state.categoryCounts)
+
+            // Root status banner
+            renderRootBanner(state.rootState, state.isRootAvailable)
+        } catch (e: Exception) {
+            // Render failures should not crash the fragment
         }
-
-        // Swipe refresh
-        binding.swipeRefresh.isRefreshing = false
-
-        // Storage usage
-        renderStorageUsage(state.storageInfo)
-
-        // Quick stats
-        binding.tvTotalRecovered.text = state.totalRecovered.toString()
-        binding.tvTotalRecoveredSize.text = formatFileSize(state.totalRecoveredSize)
-
-        // Last scan
-        state.lastScanDate?.let { timestamp ->
-            binding.tvLastScanDate.text = DateFormat.getDateTimeInstance()
-                .format(Date(timestamp))
-            binding.tvLastScanType.text = state.lastScanType?.name ?: ""
-            binding.layoutLastScan?.visibility = View.VISIBLE
-        } ?: run {
-            binding.layoutLastScan?.visibility = View.GONE
-        }
-
-        // Category counts
-        renderCategoryCounts(state.categoryCounts)
-
-        // Root status banner
-        renderRootBanner(state.rootState, state.isRootAvailable)
     }
 
     // ──────────────────────────────────────────
