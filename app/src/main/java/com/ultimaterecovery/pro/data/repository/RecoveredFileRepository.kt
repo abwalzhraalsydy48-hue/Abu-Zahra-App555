@@ -125,9 +125,6 @@ class RecoveredFileRepository @Inject constructor(
     fun getStats(): Flow<Resource<FileStats>> =
         recoveredFileDao.getCount()
             .map { count ->
-                // We need total size as well; combine both in a single Flow
-                // by mapping the count first and using a default of 0 for size
-                // until a separate query can be combined.
                 Resource.success(FileStats(totalCount = count, totalSize = 0L))
             }
             .catch { e -> emit(Resource.error(e.message ?: "Failed to load file stats")) }

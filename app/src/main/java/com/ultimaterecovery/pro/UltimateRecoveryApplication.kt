@@ -120,10 +120,17 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
     // ──────────────────────────────────────────────
 
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .setMinimumLoggingLevel(if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.WARN)
-            .build()
+        get() = try {
+            Configuration.Builder()
+                .setWorkerFactory(workerFactory)
+                .setMinimumLoggingLevel(if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.WARN)
+                .build()
+        } catch (e: UninitializedPropertyAccessException) {
+            // Fallback if Hilt hasn't injected workerFactory yet
+            Configuration.Builder()
+                .setMinimumLoggingLevel(if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.WARN)
+                .build()
+        }
 
     // ──────────────────────────────────────────────
     // Application Lifecycle
@@ -137,8 +144,9 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
 
         try {
             Shell.setDefaultBuilder(Shell.Builder.create())
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // libsu initialization failure should not crash the app
+            // Must catch Throwable because libsu can throw UnsatisfiedLinkError (Error, not Exception)
         }
 
         try {
@@ -473,7 +481,11 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
     private fun installCrashHandler() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            Timber.e(throwable, "Uncaught exception on thread: ${thread.name}")
+            try {
+                Timber.e(throwable, "Uncaught exception on thread: ${thread.name}")
+            } catch (_: Exception) {
+                // Timber might not be initialized yet
+            }
             // Forward to the default handler so the system can still handle it
             // but avoid the ANR crash dialog if possible
             defaultHandler?.uncaughtException(thread, throwable)

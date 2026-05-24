@@ -9,7 +9,7 @@
 
     <fragment
         android:id="@+id/HomeFragment"
-        android:name="com.ultimaterecovery.pro.ui.home.HomeFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.HomeFragment"
         android:label="Home"
         tools:layout="@layout/fragment_home">
         <action
@@ -90,8 +90,8 @@
             app:popEnterAnim="@anim/slide_in_right"
             app:popExitAnim="@anim/slide_out_left" />
         <action
-            android:id="@+id/action_HomeFragment_to_AccountRecoveryFragment"
-            app:destination="@id/AccountRecoveryFragment"
+            android:id="@+id/action_HomeFragment_to_AccountRecoveryActivity"
+            app:destination="@id/AccountRecoveryActivity"
             app:enterAnim="@anim/slide_in_bottom"
             app:exitAnim="@anim/fade_out"
             app:popEnterAnim="@anim/fade_in"
@@ -100,7 +100,7 @@
 
     <fragment
         android:id="@+id/ScanFragment"
-        android:name="com.ultimaterecovery.pro.ui.scan.ScanFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.scan.ScanFragment"
         android:label="Scan"
         tools:layout="@layout/fragment_scan">
         <argument
@@ -137,7 +137,7 @@
 
     <fragment
         android:id="@+id/PhotoRecoveryFragment"
-        android:name="com.ultimaterecovery.pro.ui.recovery.PhotoRecoveryFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.photo.PhotoRecoveryFragment"
         android:label="Photo Recovery"
         tools:layout="@layout/fragment_photo_recovery">
         <argument
@@ -158,7 +158,7 @@
 
     <fragment
         android:id="@+id/VideoRecoveryFragment"
-        android:name="com.ultimaterecovery.pro.ui.recovery.VideoRecoveryFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.video.VideoRecoveryFragment"
         android:label="Video Recovery"
         tools:layout="@layout/fragment_video_recovery">
         <argument
@@ -179,7 +179,7 @@
 
     <fragment
         android:id="@+id/FileRecoveryFragment"
-        android:name="com.ultimaterecovery.pro.ui.recovery.FileRecoveryFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.file.FileRecoveryFragment"
         android:label="File Recovery"
         tools:layout="@layout/fragment_file_recovery">
         <argument
@@ -200,7 +200,7 @@
 
     <fragment
         android:id="@+id/SmsRecoveryFragment"
-        android:name="com.ultimaterecovery.pro.ui.recovery.SmsRecoveryFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.sms.SmsRecoveryFragment"
         android:label="SMS Recovery"
         tools:layout="@layout/fragment_sms_recovery">
         <argument
@@ -216,7 +216,7 @@
 
     <fragment
         android:id="@+id/CallLogRecoveryFragment"
-        android:name="com.ultimaterecovery.pro.ui.recovery.CallLogRecoveryFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.calllog.CallLogRecoveryFragment"
         android:label="Call Log Recovery"
         tools:layout="@layout/fragment_call_log_recovery">
         <argument
@@ -232,7 +232,7 @@
 
     <fragment
         android:id="@+id/AppDataRecoveryFragment"
-        android:name="com.ultimaterecovery.pro.ui.recovery.AppDataRecoveryFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.appdata.AppDataRecoveryFragment"
         android:label="App Data Recovery"
         tools:layout="@layout/fragment_app_data_recovery">
         <argument
@@ -248,7 +248,7 @@
 
     <fragment
         android:id="@+id/BackupFragment"
-        android:name="com.ultimaterecovery.pro.ui.backup.BackupFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.backup.BackupFragment"
         android:label="Backup"
         tools:layout="@layout/fragment_backup">
         <argument
@@ -264,7 +264,7 @@
 
     <fragment
         android:id="@+id/RecycleBinFragment"
-        android:name="com.ultimaterecovery.pro.ui.recyclebin.RecycleBinFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.recyclebin.RecycleBinFragment"
         android:label="Recycle Bin"
         tools:layout="@layout/fragment_recycle_bin">
         <argument
@@ -285,7 +285,7 @@
 
     <fragment
         android:id="@+id/FileManagerFragment"
-        android:name="com.ultimaterecovery.pro.ui.filemanager.FileManagerFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.filemanager.FileManagerFragment"
         android:label="File Manager"
         tools:layout="@layout/fragment_file_manager">
         <argument
@@ -308,39 +308,23 @@
 
     <fragment
         android:id="@+id/SettingsFragment"
-        android:name="com.ultimaterecovery.pro.ui.settings.SettingsFragment"
+        android:name="com.ultimaterecovery.pro.ui.fragments.settings.SettingsFragment"
         android:label="Settings"
         tools:layout="@layout/fragment_settings">
         <action
-            android:id="@+id/action_SettingsFragment_to_AccountRecoveryFragment"
-            app:destination="@id/AccountRecoveryFragment"
+            android:id="@+id/action_SettingsFragment_to_AccountRecoveryActivity"
+            app:destination="@id/AccountRecoveryActivity"
             app:enterAnim="@anim/slide_in_bottom"
             app:exitAnim="@anim/fade_out"
             app:popEnterAnim="@anim/fade_in"
             app:popExitAnim="@anim/slide_out_bottom" />
     </fragment>
 
-    <fragment
-        android:id="@+id/AccountRecoveryFragment"
-        android:name="com.ultimaterecovery.pro.ui.recovery.AccountRecoveryFragment"
-        android:label="Account Recovery"
-        tools:layout="@layout/fragment_account_recovery">
-        <argument
-            android:name="accountType"
-            app:argType="string"
-            android:defaultValue="google" />
-        <action
-            android:id="@+id/action_AccountRecoveryFragment_to_BackupFragment"
-            app:destination="@id/BackupFragment"
-            app:enterAnim="@anim/slide_in_right"
-            app:exitAnim="@anim/slide_out_left" />
-    </fragment>
-
     <!-- ==================== ACTIVITY DESTINATIONS ==================== -->
 
     <activity
         android:id="@+id/ScanActivity"
-        android:name="com.ultimaterecovery.pro.ui.scan.ScanActivity"
+        android:name="com.ultimaterecovery.pro.ui.activities.ScanActivity"
         android:label="Scan Activity"
         tools:layout="@layout/activity_scan">
         <argument
@@ -355,7 +339,7 @@
 
     <activity
         android:id="@+id/PreviewActivity"
-        android:name="com.ultimaterecovery.pro.ui.preview.PreviewActivity"
+        android:name="com.ultimaterecovery.pro.ui.activities.PreviewActivity"
         android:label="Preview"
         tools:layout="@layout/activity_preview">
         <argument
@@ -369,6 +353,17 @@
             android:name="isRecovered"
             app:argType="boolean"
             android:defaultValue="false" />
+    </activity>
+
+    <activity
+        android:id="@+id/AccountRecoveryActivity"
+        android:name="com.ultimaterecovery.pro.ui.recovery.AccountRecoveryActivity"
+        android:label="Account Recovery"
+        tools:layout="@layout/fragment_app_data_recovery">
+        <argument
+            android:name="accountType"
+            app:argType="string"
+            android:defaultValue="google" />
     </activity>
 
 </navigation>
