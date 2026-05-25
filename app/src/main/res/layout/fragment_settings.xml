@@ -13,11 +13,19 @@
         android:orientation="vertical"
         android:padding="@dimen/margin_screen_horizontal">
 
-        <!-- General Settings Card -->
+        <!-- Toolbar -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/toolbar_height"
+            app:title="@string/settings"
+            app:navigationIcon="@null" />
+
+        <!-- Appearance Section -->
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/settings_category_general"
+            android:text="@string/settings_category_appearance"
             android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
             android:textColor="@color/primary"
             android:layout_marginTop="@dimen/spacing_md"
@@ -38,9 +46,56 @@
                 android:orientation="vertical"
                 android:paddingVertical="@dimen/spacing_sm">
 
+                <!-- Theme -->
+                <LinearLayout
+                    android:id="@+id/itemTheme"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding"
+                    android:background="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_theme"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_theme"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvThemeValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_theme_system"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
+
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_small"
+                        android:layout_height="@dimen/icon_size_small"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/on_surface_variant" />
+
+                </LinearLayout>
+
                 <!-- Language -->
                 <LinearLayout
-                    android:id="@+id/settingLanguage"
+                    android:id="@+id/itemLanguage"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/list_item_height"
                     android:orientation="horizontal"
@@ -68,9 +123,10 @@
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                         <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvLanguageValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_language_desc"
+                            android:text="System Default"
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="@color/on_surface_variant" />
 
@@ -84,52 +140,63 @@
 
                 </LinearLayout>
 
-                <!-- Scan Depth -->
+                <!-- Dynamic Color -->
                 <LinearLayout
-                    android:id="@+id/settingScanDepth"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/list_item_height"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/card_padding"
-                    android:background="?attr/selectableItemBackground">
+                    android:paddingHorizontal="@dimen/card_padding">
 
                     <ImageView
                         android:layout_width="@dimen/icon_size_medium"
                         android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_scan_depth"
+                        android:src="@drawable/ic_palette"
                         app:tint="@color/on_surface_variant"
                         android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
 
-                    <LinearLayout
+                    <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:text="@string/settings_accent_color"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_scan_depth"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/textScanDepth"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_scan_depth_normal"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface_variant" />
-
-                    </LinearLayout>
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_small"
-                        android:layout_height="@dimen/icon_size_small"
-                        android:src="@drawable/ic_chevron_right"
-                        app:tint="@color/on_surface_variant" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchDynamicColor"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Scanning Section -->
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/title_scan"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="@color/primary"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:layout_marginBottom="@dimen/spacing_sm" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/elevation_none"
+            app:strokeWidth="@dimen/card_stroke_width"
+            app:strokeColor="@color/outline_variant"
+            android:layout_marginBottom="@dimen/spacing_lg">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingVertical="@dimen/spacing_sm">
 
                 <!-- Auto Scan -->
                 <LinearLayout
@@ -174,15 +241,91 @@
 
                 </LinearLayout>
 
+                <!-- Default Scan Type -->
+                <LinearLayout
+                    android:id="@+id/itemDefaultScanType"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding"
+                    android:background="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_scan_depth"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/default_scan_type"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvDefaultScanTypeValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="QUICK"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
+
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_small"
+                        android:layout_height="@dimen/icon_size_small"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/on_surface_variant" />
+
+                </LinearLayout>
+
+                <!-- Scan Notification -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_notification_scan"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_notifications_scan"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchScanNotification"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
             </LinearLayout>
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Appearance Settings Card -->
+        <!-- Recovery Section -->
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/settings_category_appearance"
+            android:text="@string/action_recover"
             android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
             android:textColor="@color/primary"
             android:layout_marginTop="@dimen/spacing_md"
@@ -203,9 +346,38 @@
                 android:orientation="vertical"
                 android:paddingVertical="@dimen/spacing_sm">
 
-                <!-- Theme -->
+                <!-- Auto Save Results -->
                 <LinearLayout
-                    android:id="@+id/settingTheme"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_save"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_auto_scan"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchAutoSaveResults"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+                <!-- Recovery Path -->
+                <LinearLayout
+                    android:id="@+id/itemRecoveryPath"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/list_item_height"
                     android:orientation="horizontal"
@@ -216,7 +388,7 @@
                     <ImageView
                         android:layout_width="@dimen/icon_size_medium"
                         android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_theme"
+                        android:src="@drawable/ic_folder"
                         app:tint="@color/on_surface_variant"
                         android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
 
@@ -229,14 +401,14 @@
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_theme"
+                            android:text="@string/recovery_path"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                         <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/textTheme"
+                            android:id="@+id/tvRecoveryPathValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_theme_system"
+                            android:text="@string/default_path"
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="@color/on_surface_variant" />
 
@@ -250,9 +422,96 @@
 
                 </LinearLayout>
 
-                <!-- Accent Color -->
+                <!-- Overwrite Existing -->
                 <LinearLayout
-                    android:id="@+id/settingAccentColor"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_copy"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_overwrite_existing"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchOverwrite"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+                <!-- Verify Integrity -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_check_circle"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_auto_scan_desc"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchVerifyIntegrity"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Recycle Bin Section -->
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_recycle_bin"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="@color/primary"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:layout_marginBottom="@dimen/spacing_sm" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/elevation_none"
+            app:strokeWidth="@dimen/card_stroke_width"
+            app:strokeColor="@color/outline_variant"
+            android:layout_marginBottom="@dimen/spacing_lg">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingVertical="@dimen/spacing_sm">
+
+                <!-- Auto Delete Days -->
+                <LinearLayout
+                    android:id="@+id/itemAutoDeleteDays"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/list_item_height"
                     android:orientation="horizontal"
@@ -263,7 +522,7 @@
                     <ImageView
                         android:layout_width="@dimen/icon_size_medium"
                         android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_palette"
+                        android:src="@drawable/ic_timer"
                         app:tint="@color/on_surface_variant"
                         android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
 
@@ -276,24 +535,129 @@
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_accent_color"
+                            android:text="@string/auto_delete_days"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                         <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvAutoDeleteDaysValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_accent_color_desc"
+                            android:text="30"
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="@color/on_surface_variant" />
 
                     </LinearLayout>
 
-                    <View
-                        android:id="@+id/viewAccentPreview"
-                        android:layout_width="@dimen/avatar_small"
-                        android:layout_height="@dimen/avatar_small"
-                        android:background="@color/primary"
-                        android:layout_marginEnd="@dimen/spacing_sm" />
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_small"
+                        android:layout_height="@dimen/icon_size_small"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/on_surface_variant" />
+
+                </LinearLayout>
+
+                <!-- Storage Limit -->
+                <LinearLayout
+                    android:id="@+id/itemStorageLimit"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding"
+                    android:background="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_storage"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/storage_limit_mb"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvStorageLimitValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="500"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
+
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_small"
+                        android:layout_height="@dimen/icon_size_small"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/on_surface_variant" />
+
+                </LinearLayout>
+
+                <!-- Secure Delete -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_lock"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/secure_delete"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchSecureDelete"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+                <!-- Recycle Bin Monitoring -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_recycle_bin"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_recycle_bin"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchRecycleBinMonitoring"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
 
@@ -301,7 +665,141 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Security Settings Card -->
+        <!-- Backup Section -->
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/backup_title"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            android:textColor="@color/primary"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:layout_marginBottom="@dimen/spacing_sm" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/elevation_none"
+            app:strokeWidth="@dimen/card_stroke_width"
+            app:strokeColor="@color/outline_variant"
+            android:layout_marginBottom="@dimen/spacing_lg">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingVertical="@dimen/spacing_sm">
+
+                <!-- Auto Backup -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_backup"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/backup_auto"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchAutoBackup"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+                <!-- Backup Frequency -->
+                <LinearLayout
+                    android:id="@+id/itemBackupFrequency"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding"
+                    android:background="?attr/selectableItemBackground">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_calendar"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/backup_frequency"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvBackupFrequencyValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="WEEKLY"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
+
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_small"
+                        android:layout_height="@dimen/icon_size_small"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/on_surface_variant" />
+
+                </LinearLayout>
+
+                <!-- Backup Encryption -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_medium"
+                        android:layout_height="@dimen/icon_size_medium"
+                        android:src="@drawable/ic_lock"
+                        app:tint="@color/on_surface_variant"
+                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/backup_encryption"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchBackupEncryption"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Security Section -->
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -326,52 +824,9 @@
                 android:orientation="vertical"
                 android:paddingVertical="@dimen/spacing_sm">
 
-                <!-- App Lock -->
+                <!-- Security Level -->
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/list_item_height"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/card_padding">
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_lock"
-                        app:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_app_lock"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_app_lock_desc"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface_variant" />
-
-                    </LinearLayout>
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchAppLock"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
-
-                </LinearLayout>
-
-                <!-- Lock Method -->
-                <LinearLayout
-                    android:id="@+id/settingLockMethod"
+                    android:id="@+id/itemSecurityLevel"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/list_item_height"
                     android:orientation="horizontal"
@@ -395,14 +850,14 @@
                         <com.google.android.material.textview.MaterialTextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_lock_method"
+                            android:text="@string/security_level"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                         <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/textLockMethod"
+                            android:id="@+id/tvSecurityLevelValue"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_lock_pin"
+                            android:text="None"
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="@color/on_surface_variant" />
 
@@ -416,130 +871,7 @@
 
                 </LinearLayout>
 
-                <!-- Lock Timeout -->
-                <LinearLayout
-                    android:id="@+id/settingLockTimeout"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/list_item_height"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/card_padding"
-                    android:background="?attr/selectableItemBackground">
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_timer"
-                        app:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_lock_timeout"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/textLockTimeout"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_lock_immediately"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface_variant" />
-
-                    </LinearLayout>
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_small"
-                        android:layout_height="@dimen/icon_size_small"
-                        android:src="@drawable/ic_chevron_right"
-                        app:tint="@color/on_surface_variant" />
-
-                </LinearLayout>
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Storage Settings Card -->
-        <com.google.android.material.textview.MaterialTextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_category_storage"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textColor="@color/primary"
-            android:layout_marginTop="@dimen/spacing_md"
-            android:layout_marginBottom="@dimen/spacing_sm" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="@dimen/card_corner_radius"
-            app:cardElevation="@dimen/elevation_none"
-            app:strokeWidth="@dimen/card_stroke_width"
-            app:strokeColor="@color/outline_variant"
-            android:layout_marginBottom="@dimen/spacing_lg">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingVertical="@dimen/spacing_sm">
-
-                <!-- Recovery Location -->
-                <LinearLayout
-                    android:id="@+id/settingRecoveryLocation"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/list_item_height"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/card_padding"
-                    android:background="?attr/selectableItemBackground">
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_folder"
-                        app:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_recovery_location"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/textRecoveryLocation"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_default_recovery"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface_variant" />
-
-                    </LinearLayout>
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_small"
-                        android:layout_height="@dimen/icon_size_small"
-                        android:src="@drawable/ic_chevron_right"
-                        app:tint="@color/on_surface_variant" />
-
-                </LinearLayout>
-
-                <!-- Keep Original Path -->
+                <!-- Biometric -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/list_item_height"
@@ -550,81 +882,50 @@
                     <ImageView
                         android:layout_width="@dimen/icon_size_medium"
                         android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_folder_open"
+                        android:src="@drawable/ic_fingerprint"
                         app:tint="@color/on_surface_variant"
                         android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
 
-                    <LinearLayout
+                    <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_keep_original"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_keep_original_desc"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface_variant" />
-
-                    </LinearLayout>
+                        android:text="@string/settings_lock_biometric"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                     <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchKeepOriginal"
+                        android:id="@+id/switchBiometric"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
 
                 </LinearLayout>
 
-                <!-- Recycle Bin -->
+                <!-- Lock on App Switch -->
                 <LinearLayout
-                    android:id="@+id/settingRecycleBin"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/list_item_height"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/card_padding"
-                    android:background="?attr/selectableItemBackground">
+                    android:paddingHorizontal="@dimen/card_padding">
 
                     <ImageView
                         android:layout_width="@dimen/icon_size_medium"
                         android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_recycle_bin"
+                        android:src="@drawable/ic_lock"
                         app:tint="@color/on_surface_variant"
                         android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
 
-                    <LinearLayout
+                    <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:text="@string/settings_app_lock"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_recycle_bin"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_recycle_bin_desc"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface_variant" />
-
-                    </LinearLayout>
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_small"
-                        android:layout_height="@dimen/icon_size_small"
-                        android:src="@drawable/ic_chevron_right"
-                        app:tint="@color/on_surface_variant" />
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchLockOnSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
 
@@ -632,126 +933,7 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Notifications Settings Card -->
-        <com.google.android.material.textview.MaterialTextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_category_notifications"
-            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-            android:textColor="@color/primary"
-            android:layout_marginTop="@dimen/spacing_md"
-            android:layout_marginBottom="@dimen/spacing_sm" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="@dimen/card_corner_radius"
-            app:cardElevation="@dimen/elevation_none"
-            app:strokeWidth="@dimen/card_stroke_width"
-            app:strokeColor="@color/outline_variant"
-            android:layout_marginBottom="@dimen/spacing_lg">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingVertical="@dimen/spacing_sm">
-
-                <!-- Scan Notifications -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/list_item_height"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/card_padding">
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_notification_scan"
-                        app:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/settings_notifications_scan"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchNotificationScan"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true" />
-
-                </LinearLayout>
-
-                <!-- Backup Notifications -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/list_item_height"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/card_padding">
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_notification_backup"
-                        app:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/settings_notifications_backup"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchNotificationBackup"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true" />
-
-                </LinearLayout>
-
-                <!-- Recovery Notifications -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/list_item_height"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/card_padding">
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_notification_recovery"
-                        app:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/settings_notifications_recovery"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                    <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchNotificationRecovery"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true" />
-
-                </LinearLayout>
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Advanced Settings Card -->
+        <!-- History Section -->
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -776,47 +958,7 @@
                 android:orientation="vertical"
                 android:paddingVertical="@dimen/spacing_sm">
 
-                <!-- Battery Optimization -->
-                <LinearLayout
-                    android:id="@+id/settingBatteryOptimization"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/list_item_height"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="@dimen/card_padding"
-                    android:background="?attr/selectableItemBackground">
-
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_battery"
-                        app:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_battery_optimization"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_battery_optimization_desc"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface_variant" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <!-- Debug Mode -->
+                <!-- Recovery History -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/list_item_height"
@@ -827,75 +969,88 @@
                     <ImageView
                         android:layout_width="@dimen/icon_size_medium"
                         android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_debug"
+                        android:src="@drawable/ic_history"
                         app:tint="@color/on_surface_variant"
                         android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
 
-                    <LinearLayout
+                    <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_debug_mode"
-                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/settings_debug_mode_desc"
-                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                            android:textColor="@color/on_surface_variant" />
-
-                    </LinearLayout>
+                        android:text="@string/settings_category_advanced"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                     <com.google.android.material.materialswitch.MaterialSwitch
-                        android:id="@+id/switchDebugMode"
+                        android:id="@+id/switchRecoveryHistory"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
 
                 </LinearLayout>
 
-                <!-- Clear Cache -->
+                <!-- Recovery Stats -->
                 <LinearLayout
-                    android:id="@+id/settingClearCache"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/list_item_height"
+                    android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:paddingHorizontal="@dimen/card_padding"
-                    android:background="?attr/selectableItemBackground">
+                    android:paddingVertical="@dimen/spacing_xs">
 
-                    <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_clear_cache"
-                        app:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
-
-                    <LinearLayout
+                    <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:text="@string/settings_category_advanced"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                        android:textColor="@color/on_surface_variant" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="end">
 
                         <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvTotalRecoveryCount"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_clear_cache"
+                            android:text="0"
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                         <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvTotalRecoverySize"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/settings_clear_cache_desc"
+                            android:text="0 B"
                             android:textAppearance="@style/TextAppearance.Material3.BodySmall"
                             android:textColor="@color/on_surface_variant" />
 
                     </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Clear History Button -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnClearHistory"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/clear" />
+
+                    <ProgressBar
+                        android:id="@+id/progressClearHistory"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone"
+                        android:layout_marginStart="@dimen/spacing_sm" />
 
                 </LinearLayout>
 
@@ -903,7 +1058,7 @@
 
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- About Card -->
+        <!-- About Section -->
         <com.google.android.material.textview.MaterialTextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -920,7 +1075,7 @@
             app:cardElevation="@dimen/elevation_none"
             app:strokeWidth="@dimen/card_stroke_width"
             app:strokeColor="@color/outline_variant"
-            android:layout_marginBottom="@dimen/spacing_5xl">
+            android:layout_marginBottom="@dimen/spacing_lg">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -928,8 +1083,50 @@
                 android:orientation="vertical"
                 android:paddingVertical="@dimen/spacing_sm">
 
+                <!-- App Version -->
                 <LinearLayout
-                    android:id="@+id/settingAbout"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/about_title"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="end">
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvAppVersion"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="1.0.0"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/tvBuildNumber"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="1"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <!-- Privacy Policy -->
+                <LinearLayout
+                    android:id="@+id/itemPrivacyPolicy"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/list_item_height"
                     android:orientation="horizontal"
@@ -937,18 +1134,61 @@
                     android:paddingHorizontal="@dimen/card_padding"
                     android:background="?attr/selectableItemBackground">
 
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/about_privacy_policy"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
                     <ImageView
-                        android:layout_width="@dimen/icon_size_medium"
-                        android:layout_height="@dimen/icon_size_medium"
-                        android:src="@drawable/ic_info"
-                        app:tint="@color/on_surface_variant"
-                        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
+                        android:layout_width="@dimen/icon_size_small"
+                        android:layout_height="@dimen/icon_size_small"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/on_surface_variant" />
+
+                </LinearLayout>
+
+                <!-- Terms -->
+                <LinearLayout
+                    android:id="@+id/itemTerms"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding"
+                    android:background="?attr/selectableItemBackground">
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/title_about"
+                        android:text="@string/about_terms"
+                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+
+                    <ImageView
+                        android:layout_width="@dimen/icon_size_small"
+                        android:layout_height="@dimen/icon_size_small"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="@color/on_surface_variant" />
+
+                </LinearLayout>
+
+                <!-- Rate App -->
+                <LinearLayout
+                    android:id="@+id/itemRateApp"
+                    android:layout_width="match_parent"
+                    android:layout_height="@dimen/list_item_height"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/card_padding"
+                    android:background="?attr/selectableItemBackground">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/about_rate"
                         android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
 
                     <ImageView
@@ -964,204 +1204,5 @@
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
-
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnClearHistory"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemAutoDeleteDays"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemBackupFrequency"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemDefaultScanType"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemLanguage"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemPrivacyPolicy"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemRateApp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemRecoveryPath"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemSecurityLevel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemStorageLimit"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemTerms"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.FrameLayout
-        android:id="@+id/itemTheme"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <android.widget.ProgressBar
-        android:id="@+id/progressClearHistory"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchAutoBackup"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchAutoSaveResults"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchBackupEncryption"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchBiometric"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchDynamicColor"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchLockOnSwitch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchOverwrite"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchRecoveryHistory"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchRecycleBinMonitoring"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchScanNotification"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchSecureDelete"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switchVerifyIntegrity"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvAppVersion"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvAutoDeleteDaysValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvBackupFrequencyValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvBuildNumber"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvDefaultScanTypeValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvLanguageValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvRecoveryPathValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvSecurityLevelValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvStorageLimitValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvThemeValue"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvTotalRecoveryCount"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/tvTotalRecoverySize"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone" />
-
-
-    <!-- Auto-added missing views -->
-    <com.facebook.shimmer.ShimmerFrameLayout
-        android:id="@+id/shimmerFrameLayout"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
 
 </androidx.core.widget.NestedScrollView>
