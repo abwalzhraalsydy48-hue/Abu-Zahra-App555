@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────
@@ -76,8 +77,15 @@ class SmsRecoveryViewModel @Inject constructor(
     val uiState: StateFlow<SmsRecoveryUiState> = _uiState.asStateFlow()
 
     init {
-        loadMessages()
-        loadMessageCount()
+        try {
+            loadMessages()
+            loadMessageCount()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize SmsRecoveryViewModel")
+            _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+        } catch (_: Throwable) {
+            _uiState.value = _uiState.value.copy(isLoading = false, error = "Initialization failed")
+        }
     }
 
     // ──────────────────────────────────────────
@@ -89,6 +97,7 @@ class SmsRecoveryViewModel @Inject constructor(
      */
     fun loadMessages() {
         viewModelScope.launch {
+            try {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             // Start with all messages of INBOX type as default, then
@@ -118,16 +127,26 @@ class SmsRecoveryViewModel @Inject constructor(
                         is Resource.Loading -> { /* keep loading */ }
                     }
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load SMS messages")
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Failed to load messages")
+            }
         }
     }
 
     private fun loadMessageCount() {
         viewModelScope.launch {
-            smsRepository.getCount().collect { resource ->
-                if (resource is Resource.Success) {
-                    _uiState.value = _uiState.value.copy(totalMessageCount = resource.data)
+            try {
+                smsRepository.getCount().collect { resource ->
+                    if (resource is Resource.Success) {
+                        _uiState.value = _uiState.value.copy(totalMessageCount = resource.data)
+                    }
                 }
-            }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load SMS count")
+            } catch (_: Throwable) {}
         }
     }
 
@@ -143,6 +162,7 @@ class SmsRecoveryViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(currentFilter = filter)
 
         viewModelScope.launch {
+            try {
             when {
                 filter.searchQuery != null && filter.searchQuery.isNotBlank() -> {
                     smsRepository.searchMessages(filter.searchQuery)
@@ -206,6 +226,12 @@ class SmsRecoveryViewModel @Inject constructor(
                     )
                 }
             }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to filter SMS messages")
+                _uiState.value = _uiState.value.copy(error = e.message)
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(error = "Filter failed")
+            }
         }
     }
 
@@ -256,21 +282,28 @@ class SmsRecoveryViewModel @Inject constructor(
             .filter { it.id in selectedIds }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRecovering = true)
-            when (val result = smsRepository.recoverMessages(selectedMessages)) {
-                is Resource.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isRecovering = false,
-                        selectedMessageIds = emptySet()
-                    )
+            try {
+                _uiState.value = _uiState.value.copy(isRecovering = true)
+                when (val result = smsRepository.recoverMessages(selectedMessages)) {
+                    is Resource.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isRecovering = false,
+                            selectedMessageIds = emptySet()
+                        )
+                    }
+                    is Resource.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isRecovering = false,
+                            error = result.message
+                        )
+                    }
+                    is Resource.Loading -> { /* keep state */ }
                 }
-                is Resource.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isRecovering = false,
-                        error = result.message
-                    )
-                }
-                is Resource.Loading -> { /* keep state */ }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to recover SMS messages")
+                _uiState.value = _uiState.value.copy(isRecovering = false, error = e.message)
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(isRecovering = false, error = "Recovery failed")
             }
         }
     }
@@ -304,21 +337,28 @@ class SmsRecoveryViewModel @Inject constructor(
         if (selected.isEmpty()) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isExporting = true)
-            when (val result = smsRepository.exportToTxt(selected)) {
-                is Resource.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isExporting = false,
-                        exportPath = result.data
-                    )
+            try {
+                _uiState.value = _uiState.value.copy(isExporting = true)
+                when (val result = smsRepository.exportToTxt(selected)) {
+                    is Resource.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isExporting = false,
+                            exportPath = result.data
+                        )
+                    }
+                    is Resource.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isExporting = false,
+                            error = result.message
+                        )
+                    }
+                    is Resource.Loading -> { /* keep state */ }
                 }
-                is Resource.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isExporting = false,
-                        error = result.message
-                    )
-                }
-                is Resource.Loading -> { /* keep state */ }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to export SMS to TXT")
+                _uiState.value = _uiState.value.copy(isExporting = false, error = e.message)
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(isExporting = false, error = "Export failed")
             }
         }
     }
@@ -335,21 +375,28 @@ class SmsRecoveryViewModel @Inject constructor(
         if (selected.isEmpty()) return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isExporting = true)
-            when (val result = smsRepository.exportToPdf(selected)) {
-                is Resource.Success -> {
-                    _uiState.value = _uiState.value.copy(
-                        isExporting = false,
-                        exportPath = result.data
-                    )
+            try {
+                _uiState.value = _uiState.value.copy(isExporting = true)
+                when (val result = smsRepository.exportToPdf(selected)) {
+                    is Resource.Success -> {
+                        _uiState.value = _uiState.value.copy(
+                            isExporting = false,
+                            exportPath = result.data
+                        )
+                    }
+                    is Resource.Error -> {
+                        _uiState.value = _uiState.value.copy(
+                            isExporting = false,
+                            error = result.message
+                        )
+                    }
+                    is Resource.Loading -> { /* keep state */ }
                 }
-                is Resource.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isExporting = false,
-                        error = result.message
-                    )
-                }
-                is Resource.Loading -> { /* keep state */ }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to export SMS to PDF")
+                _uiState.value = _uiState.value.copy(isExporting = false, error = e.message)
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(isExporting = false, error = "Export failed")
             }
         }
     }

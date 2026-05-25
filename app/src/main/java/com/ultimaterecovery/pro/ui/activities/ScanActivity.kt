@@ -20,6 +20,7 @@ import com.ultimaterecovery.pro.databinding.ActivityScanBinding
 import com.ultimaterecovery.pro.engine.scanner.ScanState
 import com.ultimaterecovery.pro.ui.viewmodel.ScanUiState
 import com.ultimaterecovery.pro.ui.viewmodel.ScanViewModel
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -60,22 +61,29 @@ class ScanActivity : AppCompatActivity() {
     // ──────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        _binding = ActivityScanBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        try {
+            super.onCreate(savedInstanceState)
+            _binding = ActivityScanBinding.inflate(layoutInflater)
+            setContentView(binding.root)
 
-        setupToolbar()
-        setupScanTypeSelector()
-        setupCategoryChips()
-        setupControls()
-        observeUiState()
+            setupToolbar()
+            setupScanTypeSelector()
+            setupCategoryChips()
+            setupControls()
+            observeUiState()
 
-        // Restore scan type from intent if launched from a quick-action
-        intent.getStringExtra(EXTRA_SCAN_TYPE)?.let { typeName ->
-            try {
-                val scanType = ScanType.valueOf(typeName)
-                viewModel.selectScanType(scanType)
-            } catch (_: IllegalArgumentException) { }
+            // Restore scan type from intent if launched from a quick-action
+            intent.getStringExtra(EXTRA_SCAN_TYPE)?.let { typeName ->
+                try {
+                    val scanType = ScanType.valueOf(typeName)
+                    viewModel.selectScanType(scanType)
+                } catch (_: IllegalArgumentException) { }
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreate")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 
@@ -188,21 +196,29 @@ class ScanActivity : AppCompatActivity() {
     }
 
     private fun renderState(state: ScanUiState) {
-        val scanState = state.scanState
+        val binding = _binding ?: return
+        try {
 
-        when (scanState) {
-            is ScanState.Idle -> showIdleState(state)
-            is ScanState.Scanning -> showScanningState(scanState, state)
-            is ScanState.Paused -> showPausedState(scanState)
-            is ScanState.Completed -> showCompletedState(scanState, state)
-            is ScanState.Failed -> showFailedState(scanState, state)
-            is ScanState.Cancelled -> showCancelledState()
-        }
+            val scanState = state.scanState
 
-        // Error
-        state.error?.let { error ->
-            Toast.makeText(this, error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            when (scanState) {
+                is ScanState.Idle -> showIdleState(state)
+                is ScanState.Scanning -> showScanningState(scanState, state)
+                is ScanState.Paused -> showPausedState(scanState)
+                is ScanState.Completed -> showCompletedState(scanState, state)
+                is ScanState.Failed -> showFailedState(scanState, state)
+                is ScanState.Cancelled -> showCancelledState()
+            }
+
+            // Error
+            state.error?.let { error ->
+                Toast.makeText(this, error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 

@@ -22,6 +22,7 @@ import com.ultimaterecovery.pro.databinding.FragmentCallLogRecoveryBinding
 import com.ultimaterecovery.pro.databinding.ItemCallLogBinding
 import com.ultimaterecovery.pro.ui.viewmodel.CallLogRecoveryUiState
 import com.ultimaterecovery.pro.ui.viewmodel.CallLogRecoveryViewModel
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -72,11 +73,19 @@ class CallLogRecoveryFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentCallLogRecoveryBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentCallLogRecoveryBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreateView")
+            return View(context)
+        } catch (_: Throwable) {
+            return View(context)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        try {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupRecyclerView()
@@ -84,6 +93,12 @@ class CallLogRecoveryFragment : Fragment() {
         setupFilterChips()
         setupControls()
         observeUiState()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onDestroyView() {
@@ -185,54 +200,62 @@ class CallLogRecoveryFragment : Fragment() {
     }
 
     private fun renderState(state: CallLogRecoveryUiState) {
-        if (state.isLoading) {
-            binding.shimmerFrameLayout?.visibility = View.VISIBLE
-            binding.shimmerFrameLayout.startShimmer()
-            binding.recyclerViewCallLogs?.visibility = View.GONE
-        } else {
-            binding.shimmerFrameLayout?.visibility = View.GONE
-            binding.shimmerFrameLayout.stopShimmer()
-            binding.recyclerViewCallLogs?.visibility = View.VISIBLE
-        }
+        try {
+        val binding = _binding ?: return
+            if (state.isLoading) {
+                binding.shimmerFrameLayout?.visibility = View.VISIBLE
+                binding.shimmerFrameLayout.startShimmer()
+                binding.recyclerViewCallLogs?.visibility = View.GONE
+            } else {
+                binding.shimmerFrameLayout?.visibility = View.GONE
+                binding.shimmerFrameLayout.stopShimmer()
+                binding.recyclerViewCallLogs?.visibility = View.VISIBLE
+            }
 
-        callLogAdapter.submitList(state.filteredCallLogs)
+            callLogAdapter.submitList(state.filteredCallLogs)
 
-        binding.tvCallLogCount.text = getString(
-            R.string.call_log_count,
-            state.filteredCallLogs.size,
-            state.totalCount
-        )
+            binding.tvCallLogCount.text = getString(
+                R.string.call_log_count,
+                state.filteredCallLogs.size,
+                state.totalCount
+            )
 
-        val selectedCount = state.selectedLogIds.size
-        if (selectedCount > 0) {
-            binding.layoutSelectionBar?.visibility = View.VISIBLE
-            binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
-            binding.fabRecover?.visibility = View.VISIBLE
-        } else {
-            binding.layoutSelectionBar?.visibility = View.GONE
-            binding.fabRecover?.visibility = View.GONE
-        }
+            val selectedCount = state.selectedLogIds.size
+            if (selectedCount > 0) {
+                binding.layoutSelectionBar?.visibility = View.VISIBLE
+                binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
+                binding.fabRecover?.visibility = View.VISIBLE
+            } else {
+                binding.layoutSelectionBar?.visibility = View.GONE
+                binding.fabRecover?.visibility = View.GONE
+            }
 
-        if (state.filteredCallLogs.isEmpty() && !state.isLoading) {
-            binding.layoutEmptyState?.visibility = View.VISIBLE
-            binding.recyclerViewCallLogs?.visibility = View.GONE
-        } else {
-            binding.layoutEmptyState?.visibility = View.GONE
-        }
+            if (state.filteredCallLogs.isEmpty() && !state.isLoading) {
+                binding.layoutEmptyState?.visibility = View.VISIBLE
+                binding.recyclerViewCallLogs?.visibility = View.GONE
+            } else {
+                binding.layoutEmptyState?.visibility = View.GONE
+            }
 
-        if (state.isExporting) {
-            binding.progressExport?.visibility = View.VISIBLE
-        } else {
-            binding.progressExport?.visibility = View.GONE
-        }
+            if (state.isExporting) {
+                binding.progressExport?.visibility = View.VISIBLE
+            } else {
+                binding.progressExport?.visibility = View.GONE
+            }
 
-        state.exportPath?.let { path ->
-            Toast.makeText(requireContext(), getString(R.string.exported_to, path), Toast.LENGTH_SHORT).show()
-        }
+            state.exportPath?.let { path ->
+                Toast.makeText(requireContext(), getString(R.string.exported_to, path), Toast.LENGTH_SHORT).show()
+            }
 
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            state.error?.let { error ->
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 

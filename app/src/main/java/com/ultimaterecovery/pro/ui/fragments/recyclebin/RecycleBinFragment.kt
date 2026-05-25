@@ -24,6 +24,7 @@ import com.ultimaterecovery.pro.databinding.FragmentRecycleBinBinding
 import com.ultimaterecovery.pro.databinding.ItemRecycleBinGridBinding
 import com.ultimaterecovery.pro.ui.viewmodel.RecycleBinUiState
 import com.ultimaterecovery.pro.ui.viewmodel.RecycleBinViewModel
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
@@ -73,11 +74,19 @@ class RecycleBinFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentRecycleBinBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentRecycleBinBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreateView")
+            return View(context)
+        } catch (_: Throwable) {
+            return View(context)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        try {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupRecyclerView()
@@ -85,6 +94,12 @@ class RecycleBinFragment : Fragment() {
         setupControls()
         setupSettings()
         observeUiState()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onDestroyView() {
@@ -181,57 +196,65 @@ class RecycleBinFragment : Fragment() {
     }
 
     private fun renderState(state: RecycleBinUiState) {
-        if (state.isLoading) {
-            binding.shimmerFrameLayout?.visibility = View.VISIBLE
-            binding.shimmerFrameLayout.startShimmer()
-            binding.recyclerViewItems?.visibility = View.GONE
-        } else {
-            binding.shimmerFrameLayout?.visibility = View.GONE
-            binding.shimmerFrameLayout.stopShimmer()
-            binding.recyclerViewItems?.visibility = View.VISIBLE
-        }
+        try {
+        val binding = _binding ?: return
+            if (state.isLoading) {
+                binding.shimmerFrameLayout?.visibility = View.VISIBLE
+                binding.shimmerFrameLayout.startShimmer()
+                binding.recyclerViewItems?.visibility = View.GONE
+            } else {
+                binding.shimmerFrameLayout?.visibility = View.GONE
+                binding.shimmerFrameLayout.stopShimmer()
+                binding.recyclerViewItems?.visibility = View.VISIBLE
+            }
 
-        recycleBinAdapter.submitList(state.filteredItems)
+            recycleBinAdapter.submitList(state.filteredItems)
 
-        // Storage usage
-        binding.tvStorageUsed.text = formatFileSize(state.totalStorageUsed)
-        binding.tvItemCount.text = getString(R.string.item_count, state.totalItemCount)
+            // Storage usage
+            binding.tvStorageUsed.text = formatFileSize(state.totalStorageUsed)
+            binding.tvItemCount.text = getString(R.string.item_count, state.totalItemCount)
 
-        // Selection
-        val selectedCount = state.selectedIds.size
-        if (selectedCount > 0) {
-            binding.layoutSelectionBar?.visibility = View.VISIBLE
-            binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
-            binding.fabRestore?.visibility = View.VISIBLE
-            binding.fabDelete?.visibility = View.VISIBLE
-        } else {
-            binding.layoutSelectionBar?.visibility = View.GONE
-            binding.fabRestore?.visibility = View.GONE
-            binding.fabDelete?.visibility = View.GONE
-        }
+            // Selection
+            val selectedCount = state.selectedIds.size
+            if (selectedCount > 0) {
+                binding.layoutSelectionBar?.visibility = View.VISIBLE
+                binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
+                binding.fabRestore?.visibility = View.VISIBLE
+                binding.fabDelete?.visibility = View.VISIBLE
+            } else {
+                binding.layoutSelectionBar?.visibility = View.GONE
+                binding.fabRestore?.visibility = View.GONE
+                binding.fabDelete?.visibility = View.GONE
+            }
 
-        // Empty state
-        if (state.filteredItems.isEmpty() && !state.isLoading) {
-            binding.layoutEmptyState?.visibility = View.VISIBLE
-            binding.recyclerViewItems?.visibility = View.GONE
-        } else {
-            binding.layoutEmptyState?.visibility = View.GONE
-        }
+            // Empty state
+            if (state.filteredItems.isEmpty() && !state.isLoading) {
+                binding.layoutEmptyState?.visibility = View.VISIBLE
+                binding.recyclerViewItems?.visibility = View.GONE
+            } else {
+                binding.layoutEmptyState?.visibility = View.GONE
+            }
 
-        // Operation progress
-        binding.progressOperation.visibility =
-            if (state.isRestoring || state.isDeleting || state.isCleaning) View.VISIBLE else View.GONE
+            // Operation progress
+            binding.progressOperation.visibility =
+                if (state.isRestoring || state.isDeleting || state.isCleaning) View.VISIBLE else View.GONE
 
-        // Success message
-        state.successMessage?.let { msg ->
-            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
-            viewModel.clearSuccessMessage()
-        }
+            // Success message
+            state.successMessage?.let { msg ->
+                Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                viewModel.clearSuccessMessage()
+            }
 
-        // Error
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            // Error
+            state.error?.let { error ->
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 

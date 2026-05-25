@@ -19,6 +19,7 @@ import com.ultimaterecovery.pro.R
 import com.ultimaterecovery.pro.databinding.ActivityPreviewBinding
 import kotlinx.coroutines.launch
 import java.io.File
+import timber.log.Timber
 
 /**
  * Full-screen media preview activity.
@@ -70,14 +71,21 @@ class PreviewActivity : AppCompatActivity() {
     // ──────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        _binding = ActivityPreviewBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        try {
+            super.onCreate(savedInstanceState)
+            _binding = ActivityPreviewBinding.inflate(layoutInflater)
+            setContentView(binding.root)
 
-        parseIntent()
-        setupToolbar()
-        setupControls()
-        loadPreview()
+            parseIntent()
+            setupToolbar()
+            setupControls()
+            loadPreview()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreate")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onPause() {

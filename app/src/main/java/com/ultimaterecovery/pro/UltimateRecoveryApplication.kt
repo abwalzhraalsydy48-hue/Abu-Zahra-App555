@@ -142,11 +142,24 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
         // Install uncaught exception handler to prevent hard crashes
         installCrashHandler()
 
+        // Initialize libsu Shell with maximum error protection.
+        // On some devices (itel, Huawei, etc.), the native .so libraries
+        // may not load properly, causing UnsatisfiedLinkError or other
+        // runtime errors. We must catch ALL Throwables to prevent crash.
         try {
-            Shell.setDefaultBuilder(Shell.Builder.create())
+            val builder = Shell.Builder.create()
+            Shell.setDefaultBuilder(builder)
         } catch (e: Throwable) {
             // libsu initialization failure should not crash the app
-            // Must catch Throwable because libsu can throw UnsatisfiedLinkError (Error, not Exception)
+            // Must catch Throwable because libsu can throw:
+            // - UnsatisfiedLinkError (Error, not Exception)
+            // - NoClassDefFoundError if the library is missing
+            // - ExceptionInInitializerError from static init blocks
+            try {
+                android.util.Log.w(TAG, "libsu Shell initialization failed: ${e.message}")
+            } catch (_: Exception) {
+                // Logging might not be available yet
+            }
         }
 
         try {

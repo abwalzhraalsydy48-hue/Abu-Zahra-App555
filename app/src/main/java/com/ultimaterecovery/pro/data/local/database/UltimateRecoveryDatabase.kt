@@ -99,21 +99,44 @@ abstract class UltimateRecoveryDatabase : RoomDatabase() {
         @Synchronized
         fun getDatabase(context: Context): UltimateRecoveryDatabase {
             return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    UltimateRecoveryDatabase::class.java,
-                    "ultimate_recovery_db"
-                )
-                    .addCallback(DatabaseCallback(context.applicationContext))
-                    // ── Migration strategy ──────────────────────────
-                    // Add versioned migrations here, e.g.:
-                    //   .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                    //
-                    // During development only:
-                    //   .fallbackToDestructiveMigration()
-                    // ────────────────────────────────────────────────
-                    .build()
-                    .also { INSTANCE = it }
+                INSTANCE ?: try {
+                    Room.databaseBuilder(
+                        context.applicationContext,
+                        UltimateRecoveryDatabase::class.java,
+                        "ultimate_recovery_db"
+                    )
+                        .addCallback(DatabaseCallback())
+                        .build()
+                        .also { INSTANCE = it }
+                } catch (e: Exception) {
+                    // If database creation fails (e.g., WAL mode unsupported),
+                    // try again with TRUNCATE journal mode as fallback
+                    try {
+                        Room.databaseBuilder(
+                            context.applicationContext,
+                            UltimateRecoveryDatabase::class.java,
+                            "ultimate_recovery_db"
+                        )
+                            .addCallback(SafeDatabaseCallback())
+                            .build()
+                            .also { INSTANCE = it }
+                    } catch (e2: Exception) {
+                        // Last resort: delete the database file and recreate
+                        try {
+                            context.applicationContext.deleteDatabase("ultimate_recovery_db")
+                            Room.databaseBuilder(
+                                context.applicationContext,
+                                UltimateRecoveryDatabase::class.java,
+                                "ultimate_recovery_db"
+                            )
+                                .addCallback(SafeDatabaseCallback())
+                                .build()
+                                .also { INSTANCE = it }
+                        } catch (e3: Exception) {
+                            throw e3 // Re-throw if we truly can't create the database
+                        }
+                    }
+                }
             }
         }
 
@@ -125,42 +148,76 @@ abstract class UltimateRecoveryDatabase : RoomDatabase() {
         fun destroyInstance() {
             INSTANCE = null
         }
+
+        /**
+         * Executes a SQL statement safely, catching any exceptions
+         * that might occur on devices with incompatible SQLite implementations.
+         *
+         * Some devices (itel, Huawei, etc.) use SQLite implementations or
+         * file systems that don't support WAL journal mode, causing the
+         * "SQLITE_OK[0]: Cannot perform queries" error.
+         */
+        private fun safeExecSQL(connection: androidx.sqlite.db.SupportSQLiteDatabase, sql: String) {
+            try {
+                connection.execSQL(sql)
+            } catch (e: Exception) {
+                // PRAGMA execution failure should not crash the app
+                // Some devices don't support certain PRAGMA operations
+            }
+        }
     }
 
     /**
-     * Room callback invoked when the database is created for the first time.
-     *
-     * Use this to seed default data or perform one-time schema setup.
-     * Runs on the database's background thread — do **not** launch
-     * long-running operations here.
+     * Safe database callback that wraps all PRAGMA operations in try-catch
+     * to prevent crashes on devices with incompatible SQLite implementations.
      */
-    private class DatabaseCallback(
-        private val context: Context
-    ) : RoomDatabase.Callback() {
+    private class DatabaseCallback : RoomDatabase.Callback() {
 
         override fun onCreate(connection: androidx.sqlite.db.SupportSQLiteDatabase) {
             super.onCreate(connection)
-
-            // ── Seed default data ──────────────────────────────
-            // Example: insert a default recycle-bin auto-delete
-            // threshold or placeholder scan session. Expand as
-            // the product requires.
-            //
-            // connection.execSQL(
-            //     "INSERT INTO scan_sessions (start_time, scan_type, status, storage_path) "
-            //         + "VALUES (0, 0, 2, '/storage/emulated/0')"
-            // )
-
-            // ── Enable SQLite optimizations ────────────────────
-            connection.execSQL("PRAGMA journal_mode=WAL")
-            connection.execSQL("PRAGMA foreign_keys=ON")
+            safeExecSQL(connection, "PRAGMA journal_mode=WAL")
+            safeExecSQL(connection, "PRAGMA foreign_keys=ON")
         }
 
         override fun onOpen(connection: androidx.sqlite.db.SupportSQLiteDatabase) {
             super.onOpen(connection)
-            // Re-enable constraints every time the DB is opened,
-            // since SQLite does not persist PRAGMA settings.
-            connection.execSQL("PRAGMA foreign_keys=ON")
+            safeExecSQL(connection, "PRAGMA foreign_keys=ON")
+        }
+
+        private fun safeExecSQL(connection: androidx.sqlite.db.SupportSQLiteDatabase, sql: String) {
+            try {
+                connection.execSQL(sql)
+            } catch (e: Exception) {
+                // PRAGMA execution failure should not crash the app
+            }
+        }
+    }
+
+    /**
+     * Fallback database callback that uses TRUNCATE journal mode instead of WAL.
+     * Used when the primary database creation fails on devices
+     * that don't support WAL journal mode.
+     */
+    private class SafeDatabaseCallback : RoomDatabase.Callback() {
+
+        override fun onCreate(connection: androidx.sqlite.db.SupportSQLiteDatabase) {
+            super.onCreate(connection)
+            // Explicitly set TRUNCATE mode for maximum compatibility
+            safeExecSQL(connection, "PRAGMA journal_mode=TRUNCATE")
+            safeExecSQL(connection, "PRAGMA foreign_keys=ON")
+        }
+
+        override fun onOpen(connection: androidx.sqlite.db.SupportSQLiteDatabase) {
+            super.onOpen(connection)
+            safeExecSQL(connection, "PRAGMA foreign_keys=ON")
+        }
+
+        private fun safeExecSQL(connection: androidx.sqlite.db.SupportSQLiteDatabase, sql: String) {
+            try {
+                connection.execSQL(sql)
+            } catch (e: Exception) {
+                // PRAGMA execution failure should not crash the app
+            }
         }
     }
 }

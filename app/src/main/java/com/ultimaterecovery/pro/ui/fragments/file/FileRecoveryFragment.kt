@@ -26,6 +26,7 @@ import com.ultimaterecovery.pro.ui.activities.PreviewActivity
 import com.ultimaterecovery.pro.ui.viewmodel.FileRecoveryUiState
 import com.ultimaterecovery.pro.ui.viewmodel.FileRecoveryViewModel
 import com.ultimaterecovery.pro.ui.viewmodel.FileSortBy
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
@@ -74,11 +75,19 @@ class FileRecoveryFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentFileRecoveryBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentFileRecoveryBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreateView")
+            return View(context)
+        } catch (_: Throwable) {
+            return View(context)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        try {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupCategoryTabs()
@@ -86,6 +95,12 @@ class FileRecoveryFragment : Fragment() {
         setupSwipeRefresh()
         setupControls()
         observeUiState()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onDestroyView() {
@@ -189,52 +204,60 @@ class FileRecoveryFragment : Fragment() {
     }
 
     private fun renderState(state: FileRecoveryUiState) {
-        binding.swipeRefresh.isRefreshing = false
+        try {
+        val binding = _binding ?: return
+            binding.swipeRefresh.isRefreshing = false
 
-        if (state.isLoading) {
-            binding.shimmerFrameLayout?.visibility = View.VISIBLE
-            binding.shimmerFrameLayout.startShimmer()
-            binding.recyclerViewFiles?.visibility = View.GONE
-        } else {
-            binding.shimmerFrameLayout?.visibility = View.GONE
-            binding.shimmerFrameLayout.stopShimmer()
-            binding.recyclerViewFiles?.visibility = View.VISIBLE
-        }
+            if (state.isLoading) {
+                binding.shimmerFrameLayout?.visibility = View.VISIBLE
+                binding.shimmerFrameLayout.startShimmer()
+                binding.recyclerViewFiles?.visibility = View.GONE
+            } else {
+                binding.shimmerFrameLayout?.visibility = View.GONE
+                binding.shimmerFrameLayout.stopShimmer()
+                binding.recyclerViewFiles?.visibility = View.VISIBLE
+            }
 
-        fileAdapter.submitList(state.filteredFiles)
+            fileAdapter.submitList(state.filteredFiles)
 
-        val selectedCount = state.selectedFileIds.size
-        if (selectedCount > 0) {
-            binding.layoutSelectionBar?.visibility = View.VISIBLE
-            binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
-            binding.fabRecover?.visibility = View.VISIBLE
-        } else {
-            binding.layoutSelectionBar?.visibility = View.GONE
-            binding.fabRecover?.visibility = View.GONE
-        }
+            val selectedCount = state.selectedFileIds.size
+            if (selectedCount > 0) {
+                binding.layoutSelectionBar?.visibility = View.VISIBLE
+                binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
+                binding.fabRecover?.visibility = View.VISIBLE
+            } else {
+                binding.layoutSelectionBar?.visibility = View.GONE
+                binding.fabRecover?.visibility = View.GONE
+            }
 
-        if (state.filteredFiles.isEmpty() && !state.isLoading) {
-            binding.layoutEmptyState?.visibility = View.VISIBLE
-            binding.recyclerViewFiles?.visibility = View.GONE
-        } else {
-            binding.layoutEmptyState?.visibility = View.GONE
-        }
+            if (state.filteredFiles.isEmpty() && !state.isLoading) {
+                binding.layoutEmptyState?.visibility = View.VISIBLE
+                binding.recyclerViewFiles?.visibility = View.GONE
+            } else {
+                binding.layoutEmptyState?.visibility = View.GONE
+            }
 
-        // Recovery progress
-        state.recoveryProgress?.let { progress ->
-            binding.layoutRecoveryProgress?.visibility = View.VISIBLE
-            val percent = if (progress.totalFiles > 0) {
-                (progress.processedFiles * 100 / progress.totalFiles)
-            } else 0
-            binding.progressRecovery.progress = percent
-            binding.tvRecoveryProgress.text = getString(R.string.recovery_progress, percent)
-        } ?: run {
-            binding.layoutRecoveryProgress?.visibility = View.GONE
-        }
+            // Recovery progress
+            state.recoveryProgress?.let { progress ->
+                binding.layoutRecoveryProgress?.visibility = View.VISIBLE
+                val percent = if (progress.totalFiles > 0) {
+                    (progress.processedFiles * 100 / progress.totalFiles)
+                } else 0
+                binding.progressRecovery.progress = percent
+                binding.tvRecoveryProgress.text = getString(R.string.recovery_progress, percent)
+            } ?: run {
+                binding.layoutRecoveryProgress?.visibility = View.GONE
+            }
 
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            state.error?.let { error ->
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 

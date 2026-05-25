@@ -23,6 +23,7 @@ import com.ultimaterecovery.pro.engine.scanner.ScanState
 import com.ultimaterecovery.pro.ui.activities.ScanActivity
 import com.ultimaterecovery.pro.ui.viewmodel.ScanUiState
 import com.ultimaterecovery.pro.ui.viewmodel.ScanViewModel
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -58,16 +59,30 @@ class ScanFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentScanBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentScanBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreateView")
+            return View(context)
+        } catch (_: Throwable) {
+            return View(context)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        try {
         super.onViewCreated(view, savedInstanceState)
         setupScanTypeSelector()
         setupCategoryChips()
         setupControls()
         observeUiState()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onDestroyView() {
@@ -142,22 +157,30 @@ class ScanFragment : Fragment() {
     }
 
     private fun renderState(state: ScanUiState) {
-        when (val scanState = state.scanState) {
-            is ScanState.Idle -> showIdleState()
-            is ScanState.Scanning -> showScanningState(scanState)
-            is ScanState.Paused -> showPausedState(scanState)
-            is ScanState.Completed -> showCompletedState(scanState)
-            is ScanState.Failed -> showFailedState(scanState)
-            is ScanState.Cancelled -> {
-                showIdleState()
-                Toast.makeText(requireContext(), R.string.scan_cancelled, Toast.LENGTH_SHORT).show()
+        try {
+        val binding = _binding ?: return
+            when (val scanState = state.scanState) {
+                is ScanState.Idle -> showIdleState()
+                is ScanState.Scanning -> showScanningState(scanState)
+                is ScanState.Paused -> showPausedState(scanState)
+                is ScanState.Completed -> showCompletedState(scanState)
+                is ScanState.Failed -> showFailedState(scanState)
+                is ScanState.Cancelled -> {
+                    showIdleState()
+                    Toast.makeText(requireContext(), R.string.scan_cancelled, Toast.LENGTH_SHORT).show()
+                }
             }
-        }
 
-        // Error handling
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            // Error handling
+            state.error?.let { error ->
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 

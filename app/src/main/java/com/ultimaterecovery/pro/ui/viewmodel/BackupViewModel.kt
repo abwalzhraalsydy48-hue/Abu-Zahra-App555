@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 
@@ -67,8 +68,15 @@ class BackupViewModel @Inject constructor(
     val uiState: StateFlow<BackupUiState> = _uiState.asStateFlow()
 
     init {
+        try {
         loadBackupHistory()
         loadCompletedBackups()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize BackupViewModel")
+            _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+        } catch (_: Throwable) {
+            _uiState.value = _uiState.value.copy(isLoading = false, error = "Initialization failed")
+        }
     }
 
     // ──────────────────────────────────────────
@@ -77,6 +85,8 @@ class BackupViewModel @Inject constructor(
 
     fun loadBackupHistory() {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isLoading = true)
             backupManager.getBackupHistory()
                 .catch { e ->
@@ -91,11 +101,20 @@ class BackupViewModel @Inject constructor(
                         isLoading = false
                     )
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in BackupViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     private fun loadCompletedBackups() {
         viewModelScope.launch {
+            try {
+
             backupRepository.getCompletedBackups()
                 .catch { e -> _uiState.value = _uiState.value.copy(error = e.message) }
                 .collect { resource ->
@@ -105,6 +124,13 @@ class BackupViewModel @Inject constructor(
                         )
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in BackupViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -149,6 +175,8 @@ class BackupViewModel @Inject constructor(
     fun createBackup() {
         val config = _uiState.value.backupConfig
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isCreating = true, currentProgress = null)
 
             backupManager.createBackup(config)
@@ -177,6 +205,13 @@ class BackupViewModel @Inject constructor(
                         else -> { /* in-progress phases */ }
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in BackupViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -192,6 +227,8 @@ class BackupViewModel @Inject constructor(
      */
     fun restoreBackup(backupId: Long, password: String? = null, outputDir: File? = null) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(
                 isRestoring = true,
                 selectedBackupId = backupId,
@@ -224,6 +261,13 @@ class BackupViewModel @Inject constructor(
                         else -> { /* in-progress phases */ }
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in BackupViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -236,6 +280,8 @@ class BackupViewModel @Inject constructor(
      */
     fun uploadToCloud(backupId: Long, provider: CloudProvider) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isUploading = true)
             when (val result = backupManager.uploadToCloud(backupId, provider)) {
                 is Resource.Success -> {
@@ -252,6 +298,13 @@ class BackupViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in BackupViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -260,6 +313,8 @@ class BackupViewModel @Inject constructor(
      */
     fun downloadFromCloud(backupId: Long, provider: CloudProvider) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isUploading = true)
             when (val result = backupManager.downloadFromCloud(backupId, provider)) {
                 is Resource.Success -> {
@@ -276,6 +331,13 @@ class BackupViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in BackupViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -285,6 +347,8 @@ class BackupViewModel @Inject constructor(
 
     fun deleteBackup(backupId: Long) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isDeleting = true)
             when (val result = backupManager.deleteBackup(backupId)) {
                 is Resource.Success -> {
@@ -300,6 +364,13 @@ class BackupViewModel @Inject constructor(
                     )
                 }
                 is Resource.Loading -> { /* keep state */ }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in BackupViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }

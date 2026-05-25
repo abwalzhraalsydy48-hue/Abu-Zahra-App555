@@ -33,6 +33,7 @@ import com.ultimaterecovery.pro.ui.viewmodel.PhotoFilter
 import com.ultimaterecovery.pro.ui.viewmodel.PhotoRecoveryUiState
 import com.ultimaterecovery.pro.ui.viewmodel.PhotoRecoveryViewModel
 import com.ultimaterecovery.pro.ui.viewmodel.PhotoSortBy
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
@@ -83,11 +84,19 @@ class PhotoRecoveryFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentPhotoRecoveryBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentPhotoRecoveryBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreateView")
+            return View(context)
+        } catch (_: Throwable) {
+            return View(context)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        try {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupRecyclerView()
@@ -95,6 +104,12 @@ class PhotoRecoveryFragment : Fragment() {
         setupControls()
         setupMenu()
         observeUiState()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onDestroyView() {
@@ -196,58 +211,66 @@ class PhotoRecoveryFragment : Fragment() {
     }
 
     private fun renderState(state: PhotoRecoveryUiState) {
-        // Swipe refresh
-        binding.swipeRefresh.isRefreshing = false
+        try {
+        val binding = _binding ?: return
+            // Swipe refresh
+            binding.swipeRefresh.isRefreshing = false
 
-        // Loading
-        if (state.isLoading) {
-            binding.shimmerFrameLayout?.visibility = View.VISIBLE
-            binding.shimmerFrameLayout.startShimmer()
-            binding.recyclerViewPhotos?.visibility = View.GONE
-        } else {
-            binding.shimmerFrameLayout?.visibility = View.GONE
-            binding.shimmerFrameLayout.stopShimmer()
-            binding.recyclerViewPhotos?.visibility = View.VISIBLE
-        }
+            // Loading
+            if (state.isLoading) {
+                binding.shimmerFrameLayout?.visibility = View.VISIBLE
+                binding.shimmerFrameLayout.startShimmer()
+                binding.recyclerViewPhotos?.visibility = View.GONE
+            } else {
+                binding.shimmerFrameLayout?.visibility = View.GONE
+                binding.shimmerFrameLayout.stopShimmer()
+                binding.recyclerViewPhotos?.visibility = View.VISIBLE
+            }
 
-        // Photos list
-        photoAdapter.submitList(state.filteredPhotos)
+            // Photos list
+            photoAdapter.submitList(state.filteredPhotos)
 
-        // Selection
-        val selectedCount = state.selectedPhotoIds.size
-        if (selectedCount > 0) {
-            binding.layoutSelectionBar?.visibility = View.VISIBLE
-            binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
-            binding.fabRecover?.visibility = View.VISIBLE
-        } else {
-            binding.layoutSelectionBar?.visibility = View.GONE
-            binding.fabRecover?.visibility = View.GONE
-        }
+            // Selection
+            val selectedCount = state.selectedPhotoIds.size
+            if (selectedCount > 0) {
+                binding.layoutSelectionBar?.visibility = View.VISIBLE
+                binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
+                binding.fabRecover?.visibility = View.VISIBLE
+            } else {
+                binding.layoutSelectionBar?.visibility = View.GONE
+                binding.fabRecover?.visibility = View.GONE
+            }
 
-        // Empty state
-        if (state.filteredPhotos.isEmpty() && !state.isLoading) {
-            binding.layoutEmptyState?.visibility = View.VISIBLE
-            binding.recyclerViewPhotos?.visibility = View.GONE
-        } else {
-            binding.layoutEmptyState?.visibility = View.GONE
-        }
+            // Empty state
+            if (state.filteredPhotos.isEmpty() && !state.isLoading) {
+                binding.layoutEmptyState?.visibility = View.VISIBLE
+                binding.recyclerViewPhotos?.visibility = View.GONE
+            } else {
+                binding.layoutEmptyState?.visibility = View.GONE
+            }
 
-        // Recovery progress
-        state.recoveryProgress?.let { progress ->
-            binding.layoutRecoveryProgress?.visibility = View.VISIBLE
-            val percent = if (progress.totalFiles > 0) {
-                (progress.processedFiles * 100 / progress.totalFiles)
-            } else 0
-            binding.progressRecovery.progress = percent
-            binding.tvRecoveryProgress.text = getString(R.string.recovery_progress, percent)
-        } ?: run {
-            binding.layoutRecoveryProgress?.visibility = View.GONE
-        }
+            // Recovery progress
+            state.recoveryProgress?.let { progress ->
+                binding.layoutRecoveryProgress?.visibility = View.VISIBLE
+                val percent = if (progress.totalFiles > 0) {
+                    (progress.processedFiles * 100 / progress.totalFiles)
+                } else 0
+                binding.progressRecovery.progress = percent
+                binding.tvRecoveryProgress.text = getString(R.string.recovery_progress, percent)
+            } ?: run {
+                binding.layoutRecoveryProgress?.visibility = View.GONE
+            }
 
-        // Error
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            // Error
+            state.error?.let { error ->
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 

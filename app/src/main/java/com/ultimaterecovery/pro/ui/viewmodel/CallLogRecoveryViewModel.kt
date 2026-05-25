@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────
@@ -76,9 +77,16 @@ class CallLogRecoveryViewModel @Inject constructor(
     val uiState: StateFlow<CallLogRecoveryUiState> = _uiState.asStateFlow()
 
     init {
+        try {
         loadCallLogs()
         loadCount()
         loadUniqueNumbers()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize CallLogRecoveryViewModel")
+            _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+        } catch (_: Throwable) {
+            _uiState.value = _uiState.value.copy(isLoading = false, error = "Initialization failed")
+        }
     }
 
     // ──────────────────────────────────────────
@@ -87,6 +95,8 @@ class CallLogRecoveryViewModel @Inject constructor(
 
     fun loadCallLogs() {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isLoading = true)
             callLogRepository.getCallLogsByType(CallType.INCOMING)
                 .catch { e ->
@@ -113,25 +123,50 @@ class CallLogRecoveryViewModel @Inject constructor(
                         is Resource.Loading -> { /* keep loading */ }
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in CallLogRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     private fun loadCount() {
         viewModelScope.launch {
+            try {
+
             callLogRepository.getCount().collect { resource ->
                 if (resource is Resource.Success) {
                     _uiState.value = _uiState.value.copy(totalCount = resource.data)
                 }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in CallLogRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }
 
     private fun loadUniqueNumbers() {
         viewModelScope.launch {
+            try {
+
             callLogRepository.getUniqueNumbers().collect { resource ->
                 if (resource is Resource.Success) {
                     _uiState.value = _uiState.value.copy(uniqueNumbers = resource.data)
                 }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in CallLogRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }
@@ -144,6 +179,8 @@ class CallLogRecoveryViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(currentFilter = filter)
 
         viewModelScope.launch {
+            try {
+
             when {
                 filter.searchQuery != null && filter.searchQuery.isNotBlank() -> {
                     callLogRepository.searchCallLogs(filter.searchQuery)
@@ -206,6 +243,13 @@ class CallLogRecoveryViewModel @Inject constructor(
                     )
                 }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in CallLogRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -249,6 +293,8 @@ class CallLogRecoveryViewModel @Inject constructor(
             .filter { it.id in selectedIds }
 
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isRecovering = true)
             when (val result = callLogRepository.recoverCallLogs(selectedLogs)) {
                 is Resource.Success -> {
@@ -264,6 +310,13 @@ class CallLogRecoveryViewModel @Inject constructor(
                     )
                 }
                 is Resource.Loading -> { /* keep state */ }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in CallLogRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }
@@ -294,6 +347,8 @@ class CallLogRecoveryViewModel @Inject constructor(
         if (selected.isEmpty()) return
 
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isExporting = true)
             when (val result = callLogRepository.exportToTxt(selected)) {
                 is Resource.Success -> {
@@ -310,6 +365,13 @@ class CallLogRecoveryViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in CallLogRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -322,6 +384,8 @@ class CallLogRecoveryViewModel @Inject constructor(
         if (selected.isEmpty()) return
 
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isExporting = true)
             when (val result = callLogRepository.exportToPdf(selected)) {
                 is Resource.Success -> {
@@ -337,6 +401,13 @@ class CallLogRecoveryViewModel @Inject constructor(
                     )
                 }
                 is Resource.Loading -> { /* keep state */ }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in CallLogRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }

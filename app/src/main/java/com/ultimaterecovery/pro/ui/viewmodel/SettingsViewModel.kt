@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────
@@ -175,16 +176,45 @@ class SettingsViewModel @Inject constructor(
 
     private fun loadRecoveryStats() {
         viewModelScope.launch {
-            recoveryHistoryRepository.getStats()
-                .catch { e -> _uiState.value = _uiState.value.copy(error = e.message) }
-                .collect { resource ->
-                    if (resource is Resource.Success) {
+            try {
+                recoveryHistoryRepository.getStats()
+                    .catch { e ->
+                        Timber.e(e, "Failed to load recovery stats")
                         _uiState.value = _uiState.value.copy(
-                            totalRecoveryCount = resource.data.totalRecoveredCount,
-                            totalRecoverySize = resource.data.totalRecoveredSize
+                            totalRecoveryCount = 0,
+                            totalRecoverySize = 0L,
+                            isLoading = false
                         )
                     }
-                }
+                    .collect { resource ->
+                        if (resource is Resource.Success) {
+                            _uiState.value = _uiState.value.copy(
+                                totalRecoveryCount = resource.data.totalRecoveredCount,
+                                totalRecoverySize = resource.data.totalRecoveredSize
+                            )
+                        } else if (resource is Resource.Error) {
+                            _uiState.value = _uiState.value.copy(
+                                totalRecoveryCount = 0,
+                                totalRecoverySize = 0L,
+                                isLoading = false
+                            )
+                        }
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load recovery stats")
+                _uiState.value = _uiState.value.copy(
+                    totalRecoveryCount = 0,
+                    totalRecoverySize = 0L,
+                    isLoading = false
+                )
+            } catch (_: Throwable) {
+                // Catch SQLiteException and other Errors
+                _uiState.value = _uiState.value.copy(
+                    totalRecoveryCount = 0,
+                    totalRecoverySize = 0L,
+                    isLoading = false
+                )
+            }
         }
     }
 

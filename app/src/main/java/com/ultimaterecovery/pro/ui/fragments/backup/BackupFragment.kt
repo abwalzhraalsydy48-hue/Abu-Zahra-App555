@@ -25,6 +25,7 @@ import com.ultimaterecovery.pro.databinding.ItemBackupBinding
 import com.ultimaterecovery.pro.ui.viewmodel.BackupUiState
 import com.ultimaterecovery.pro.ui.viewmodel.BackupViewModel
 import com.ultimaterecovery.pro.utils.backup.BackupManager.BackupProgress
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
@@ -73,17 +74,31 @@ class BackupFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentBackupBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentBackupBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreateView")
+            return View(context)
+        } catch (_: Throwable) {
+            return View(context)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        try {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupTabs()
         setupRecyclerView()
         setupCreateControls()
         observeUiState()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onDestroyView() {
@@ -185,66 +200,74 @@ class BackupFragment : Fragment() {
     }
 
     private fun renderState(state: BackupUiState) {
-        // Loading
-        if (state.isLoading) {
-            binding.shimmerFrameLayout?.visibility = View.VISIBLE
-            binding.shimmerFrameLayout.startShimmer()
-        } else {
-            binding.shimmerFrameLayout?.visibility = View.GONE
-            binding.shimmerFrameLayout.stopShimmer()
-        }
+        try {
+        val binding = _binding ?: return
+            // Loading
+            if (state.isLoading) {
+                binding.shimmerFrameLayout?.visibility = View.VISIBLE
+                binding.shimmerFrameLayout.startShimmer()
+            } else {
+                binding.shimmerFrameLayout?.visibility = View.GONE
+                binding.shimmerFrameLayout.stopShimmer()
+            }
 
-        // Backup list
-        backupAdapter.submitList(state.backupHistory)
+            // Backup list
+            backupAdapter.submitList(state.backupHistory)
 
-        // Create progress
-        state.currentProgress?.let { progress ->
-            binding.layoutCreateProgress?.visibility = View.VISIBLE
-            val percent = (progress.progress * 100).toInt()
-            binding.progressCreateBackup.progress = percent
-            binding.tvCreateProgressPercent.text = getString(R.string.progress_percent, percent)
-            binding.tvCreateProgressPhase.text = progress.phase.name
-        } ?: run {
-            binding.layoutCreateProgress?.visibility = View.GONE
-        }
+            // Create progress
+            state.currentProgress?.let { progress ->
+                binding.layoutCreateProgress?.visibility = View.VISIBLE
+                val percent = (progress.progress * 100).toInt()
+                binding.progressCreateBackup.progress = percent
+                binding.tvCreateProgressPercent.text = getString(R.string.progress_percent, percent)
+                binding.tvCreateProgressPhase.text = progress.phase.name
+            } ?: run {
+                binding.layoutCreateProgress?.visibility = View.GONE
+            }
 
-        // Creating state
-        binding.btnCreateBackup.isEnabled = !state.isCreating
-        binding.progressCreating.visibility = if (state.isCreating) View.VISIBLE else View.GONE
+            // Creating state
+            binding.btnCreateBackup.isEnabled = !state.isCreating
+            binding.progressCreating.visibility = if (state.isCreating) View.VISIBLE else View.GONE
 
-        // Restoring state
-        if (state.isRestoring) {
-            binding.progressRestore?.visibility = View.VISIBLE
-        } else {
-            binding.progressRestore?.visibility = View.GONE
-        }
+            // Restoring state
+            if (state.isRestoring) {
+                binding.progressRestore?.visibility = View.VISIBLE
+            } else {
+                binding.progressRestore?.visibility = View.GONE
+            }
 
-        // Uploading state
-        if (state.isUploading) {
-            binding.progressCloud?.visibility = View.VISIBLE
-        } else {
-            binding.progressCloud?.visibility = View.GONE
-        }
+            // Uploading state
+            if (state.isUploading) {
+                binding.progressCloud?.visibility = View.VISIBLE
+            } else {
+                binding.progressCloud?.visibility = View.GONE
+            }
 
-        // Success message
-        state.successMessage?.let { msg ->
-            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
-            viewModel.clearSuccessMessage()
-        }
+            // Success message
+            state.successMessage?.let { msg ->
+                Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                viewModel.clearSuccessMessage()
+            }
 
-        // Error
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
-        }
+            // Error
+            state.error?.let { error ->
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
 
-        // Empty state for backup list
-        if (state.backupHistory.isEmpty() && !state.isLoading) {
-            binding.layoutEmptyState?.visibility = View.VISIBLE
-            binding.recyclerViewBackups?.visibility = View.GONE
-        } else {
-            binding.layoutEmptyState?.visibility = View.GONE
-            binding.recyclerViewBackups?.visibility = View.VISIBLE
+            // Empty state for backup list
+            if (state.backupHistory.isEmpty() && !state.isLoading) {
+                binding.layoutEmptyState?.visibility = View.VISIBLE
+                binding.recyclerViewBackups?.visibility = View.GONE
+            } else {
+                binding.layoutEmptyState?.visibility = View.GONE
+                binding.recyclerViewBackups?.visibility = View.VISIBLE
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 

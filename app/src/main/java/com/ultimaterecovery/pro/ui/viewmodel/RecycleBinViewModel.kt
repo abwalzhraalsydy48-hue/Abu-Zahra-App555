@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────
@@ -81,9 +82,16 @@ class RecycleBinViewModel @Inject constructor(
     val uiState: StateFlow<RecycleBinUiState> = _uiState.asStateFlow()
 
     init {
+        try {
         loadItems()
         loadStorageInfo()
         loadSettings()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize RecycleBinViewModel")
+            _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+        } catch (_: Throwable) {
+            _uiState.value = _uiState.value.copy(isLoading = false, error = "Initialization failed")
+        }
     }
 
     // ──────────────────────────────────────────
@@ -92,6 +100,8 @@ class RecycleBinViewModel @Inject constructor(
 
     fun loadItems() {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isLoading = true)
             smartRecycleBin.getItems()
                 .catch { e ->
@@ -107,17 +117,42 @@ class RecycleBinViewModel @Inject constructor(
                         isLoading = false
                     )
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in RecycleBinViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     private fun loadStorageInfo() {
         viewModelScope.launch {
+            try {
+
             val used = smartRecycleBin.getTotalStorageUsed()
             _uiState.value = _uiState.value.copy(totalStorageUsed = used)
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in RecycleBinViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
         viewModelScope.launch {
+            try {
+
             smartRecycleBin.getItemCount().collect { count ->
                 _uiState.value = _uiState.value.copy(totalItemCount = count)
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in RecycleBinViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }
@@ -138,6 +173,8 @@ class RecycleBinViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(currentFilter = filter)
 
         viewModelScope.launch {
+            try {
+
             when {
                 filter.category != null -> {
                     smartRecycleBin.getItemsByCategory(filter.category)
@@ -162,6 +199,13 @@ class RecycleBinViewModel @Inject constructor(
                         filteredItems = applyFilter(_uiState.value.items, filter)
                     )
                 }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in RecycleBinViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }
@@ -203,6 +247,8 @@ class RecycleBinViewModel @Inject constructor(
      */
     fun restoreItem(itemId: Long) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isRestoring = true)
             when (val result = smartRecycleBin.restoreItem(itemId)) {
                 is Resource.Success -> {
@@ -219,6 +265,13 @@ class RecycleBinViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in RecycleBinViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -230,6 +283,8 @@ class RecycleBinViewModel @Inject constructor(
         if (selectedIds.isEmpty()) return
 
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isRestoring = true)
             var restoredCount = 0
             for (id in selectedIds) {
@@ -243,6 +298,13 @@ class RecycleBinViewModel @Inject constructor(
                 selectedIds = emptySet(),
                 successMessage = "$restoredCount items restored"
             )
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in RecycleBinViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -257,6 +319,8 @@ class RecycleBinViewModel @Inject constructor(
      */
     fun deleteItem(itemId: Long, secureWipe: Boolean = false) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isDeleting = true)
             when (val result = smartRecycleBin.deletePermanent(itemId, secureWipe)) {
                 is Resource.Success -> {
@@ -273,6 +337,13 @@ class RecycleBinViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in RecycleBinViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -284,6 +355,8 @@ class RecycleBinViewModel @Inject constructor(
         if (selectedIds.isEmpty()) return
 
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isDeleting = true)
             var deletedCount = 0
             for (id in selectedIds) {
@@ -297,6 +370,13 @@ class RecycleBinViewModel @Inject constructor(
                 selectedIds = emptySet(),
                 successMessage = "$deletedCount items permanently deleted"
             )
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in RecycleBinViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -309,6 +389,8 @@ class RecycleBinViewModel @Inject constructor(
      */
     fun cleanExpired() {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isCleaning = true)
             when (val result = smartRecycleBin.cleanExpired()) {
                 is Resource.Success -> {
@@ -324,6 +406,13 @@ class RecycleBinViewModel @Inject constructor(
                     )
                 }
                 is Resource.Loading -> { /* keep state */ }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in RecycleBinViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }

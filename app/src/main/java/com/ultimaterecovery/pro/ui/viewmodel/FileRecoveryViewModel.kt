@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────
@@ -90,7 +91,14 @@ class FileRecoveryViewModel @Inject constructor(
     val uiState: StateFlow<FileRecoveryUiState> = _uiState.asStateFlow()
 
     init {
+        try {
         loadFiles()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize FileRecoveryViewModel")
+            _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+        } catch (_: Throwable) {
+            _uiState.value = _uiState.value.copy(isLoading = false, error = "Initialization failed")
+        }
     }
 
     // ──────────────────────────────────────────
@@ -114,6 +122,8 @@ class FileRecoveryViewModel @Inject constructor(
 
     fun loadFiles() {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isLoading = true)
             recoveredFileRepository.getFilesByCategory(_uiState.value.activeCategory)
                 .catch { e ->
@@ -144,6 +154,13 @@ class FileRecoveryViewModel @Inject constructor(
                         is Resource.Loading -> { /* keep loading */ }
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -208,6 +225,8 @@ class FileRecoveryViewModel @Inject constructor(
             .filter { it.id in selectedIds }
 
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(
                 isRecovering = true,
                 recoveryProgress = null,
@@ -246,6 +265,13 @@ class FileRecoveryViewModel @Inject constructor(
                 recoveryBatch = batchResult,
                 selectedFileIds = emptySet()
             )
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 

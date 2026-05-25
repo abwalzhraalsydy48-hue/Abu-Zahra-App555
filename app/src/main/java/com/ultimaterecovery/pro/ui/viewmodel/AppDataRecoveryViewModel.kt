@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────
@@ -87,8 +88,15 @@ class AppDataRecoveryViewModel @Inject constructor(
     val uiState: StateFlow<AppDataRecoveryUiState> = _uiState.asStateFlow()
 
     init {
+        try {
         loadAppData()
         loadSystemAndUserApps()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize AppDataRecoveryViewModel")
+            _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+        } catch (_: Throwable) {
+            _uiState.value = _uiState.value.copy(isLoading = false, error = "Initialization failed")
+        }
     }
 
     // ──────────────────────────────────────────
@@ -97,6 +105,8 @@ class AppDataRecoveryViewModel @Inject constructor(
 
     fun loadAppData() {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isLoading = true)
             appDataRepository.getAll()
                 .catch { e ->
@@ -127,22 +137,47 @@ class AppDataRecoveryViewModel @Inject constructor(
                         is Resource.Loading -> { /* keep loading */ }
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in AppDataRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     private fun loadSystemAndUserApps() {
         viewModelScope.launch {
+            try {
+
             appDataRepository.getSystemApps().collect { resource ->
                 if (resource is Resource.Success) {
                     _uiState.value = _uiState.value.copy(systemApps = resource.data)
                 }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in AppDataRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
         viewModelScope.launch {
+            try {
+
             appDataRepository.getUserApps().collect { resource ->
                 if (resource is Resource.Success) {
                     _uiState.value = _uiState.value.copy(userApps = resource.data)
                 }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in AppDataRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }
@@ -155,6 +190,8 @@ class AppDataRecoveryViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(currentFilter = filter)
 
         viewModelScope.launch {
+            try {
+
             when {
                 filter.searchQuery != null && filter.searchQuery.isNotBlank() -> {
                     appDataRepository.searchApps(filter.searchQuery)
@@ -229,6 +266,13 @@ class AppDataRecoveryViewModel @Inject constructor(
                     )
                 }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in AppDataRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -286,6 +330,8 @@ class AppDataRecoveryViewModel @Inject constructor(
         val selected = _uiState.value.filteredAppData.filter { it.id in selectedIds }
 
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isRecovering = true)
             when (val result = appDataRepository.recoverAppData(selected)) {
                 is Resource.Success -> {
@@ -302,6 +348,13 @@ class AppDataRecoveryViewModel @Inject constructor(
                     )
                 }
                 is Resource.Loading -> { /* keep state */ }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in AppDataRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }

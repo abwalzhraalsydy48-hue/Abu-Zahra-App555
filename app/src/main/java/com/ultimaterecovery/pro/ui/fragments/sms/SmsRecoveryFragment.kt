@@ -22,6 +22,7 @@ import com.ultimaterecovery.pro.databinding.FragmentSmsRecoveryBinding
 import com.ultimaterecovery.pro.databinding.ItemSmsBubbleBinding
 import com.ultimaterecovery.pro.ui.viewmodel.SmsRecoveryUiState
 import com.ultimaterecovery.pro.ui.viewmodel.SmsRecoveryViewModel
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -69,11 +70,19 @@ class SmsRecoveryFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentSmsRecoveryBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentSmsRecoveryBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreateView")
+            return View(context)
+        } catch (_: Throwable) {
+            return View(context)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        try {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupRecyclerView()
@@ -81,6 +90,12 @@ class SmsRecoveryFragment : Fragment() {
         setupFilterChips()
         setupControls()
         observeUiState()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onDestroyView() {
@@ -179,63 +194,71 @@ class SmsRecoveryFragment : Fragment() {
     }
 
     private fun renderState(state: SmsRecoveryUiState) {
-        if (state.isLoading) {
-            binding.shimmerFrameLayout?.visibility = View.VISIBLE
-            binding.shimmerFrameLayout.startShimmer()
-            binding.recyclerViewSms?.visibility = View.GONE
-        } else {
-            binding.shimmerFrameLayout?.visibility = View.GONE
-            binding.shimmerFrameLayout.stopShimmer()
-            binding.recyclerViewSms?.visibility = View.VISIBLE
-        }
+        try {
+        val binding = _binding ?: return
+            if (state.isLoading) {
+                binding.shimmerFrameLayout?.visibility = View.VISIBLE
+                binding.shimmerFrameLayout.startShimmer()
+                binding.recyclerViewSms?.visibility = View.GONE
+            } else {
+                binding.shimmerFrameLayout?.visibility = View.GONE
+                binding.shimmerFrameLayout.stopShimmer()
+                binding.recyclerViewSms?.visibility = View.VISIBLE
+            }
 
-        smsAdapter.submitList(state.filteredMessages)
+            smsAdapter.submitList(state.filteredMessages)
 
-        // Message count header
-        binding.tvMessageCount.text = getString(
-            R.string.message_count,
-            state.filteredMessages.size,
-            state.totalMessageCount
-        )
+            // Message count header
+            binding.tvMessageCount.text = getString(
+                R.string.message_count,
+                state.filteredMessages.size,
+                state.totalMessageCount
+            )
 
-        // Selection
-        val selectedCount = state.selectedMessageIds.size
-        if (selectedCount > 0) {
-            binding.layoutSelectionBar?.visibility = View.VISIBLE
-            binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
-            binding.fabRecover?.visibility = View.VISIBLE
-        } else {
-            binding.layoutSelectionBar?.visibility = View.GONE
-            binding.fabRecover?.visibility = View.GONE
-        }
+            // Selection
+            val selectedCount = state.selectedMessageIds.size
+            if (selectedCount > 0) {
+                binding.layoutSelectionBar?.visibility = View.VISIBLE
+                binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
+                binding.fabRecover?.visibility = View.VISIBLE
+            } else {
+                binding.layoutSelectionBar?.visibility = View.GONE
+                binding.fabRecover?.visibility = View.GONE
+            }
 
-        // Empty state
-        if (state.filteredMessages.isEmpty() && !state.isLoading) {
-            binding.layoutEmptyState?.visibility = View.VISIBLE
-            binding.recyclerViewSms?.visibility = View.GONE
-        } else {
-            binding.layoutEmptyState?.visibility = View.GONE
-        }
+            // Empty state
+            if (state.filteredMessages.isEmpty() && !state.isLoading) {
+                binding.layoutEmptyState?.visibility = View.VISIBLE
+                binding.recyclerViewSms?.visibility = View.GONE
+            } else {
+                binding.layoutEmptyState?.visibility = View.GONE
+            }
 
-        // Export progress
-        if (state.isExporting) {
-            binding.progressExport?.visibility = View.VISIBLE
-        } else {
-            binding.progressExport?.visibility = View.GONE
-        }
+            // Export progress
+            if (state.isExporting) {
+                binding.progressExport?.visibility = View.VISIBLE
+            } else {
+                binding.progressExport?.visibility = View.GONE
+            }
 
-        // Export result
-        state.exportPath?.let { path ->
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.exported_to, path),
-                Toast.LENGTH_SHORT
-            ).show()
-        }
+            // Export result
+            state.exportPath?.let { path ->
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.exported_to, path),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
 
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            state.error?.let { error ->
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 

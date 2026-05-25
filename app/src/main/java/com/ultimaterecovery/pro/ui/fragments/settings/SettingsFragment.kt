@@ -181,61 +181,103 @@ class SettingsFragment : Fragment() {
     }
 
     private fun renderState(state: SettingsUiState) {
-        // ── Appearance ──
-        binding.tvThemeValue.text = state.theme.name.lowercase().replaceFirstChar { it.uppercase() }
-        binding.tvLanguageValue.text = state.language.displayName
-        binding.switchDynamicColor.isChecked = state.dynamicColor
+        try {
+            val currentBinding = _binding ?: return
 
-        // ── Scanning ──
-        binding.switchAutoScan.isChecked = state.autoScanOnStart
-        binding.tvDefaultScanTypeValue.text = state.defaultScanType
-        binding.switchScanNotification.isChecked = state.scanNotificationEnabled
+            // ── Appearance ──
+            try {
+                currentBinding.tvThemeValue.text = state.theme.name.lowercase().replaceFirstChar { it.uppercase() }
+                currentBinding.tvLanguageValue.text = state.language.displayName
+                currentBinding.switchDynamicColor.isChecked = state.dynamicColor
+            } catch (e: Exception) {
+                // View access failure should not crash the fragment
+            }
 
-        // ── Recovery ──
-        binding.switchAutoSaveResults.isChecked = state.autoSaveResults
-        binding.tvRecoveryPathValue.text = state.defaultRecoveryPath.ifBlank {
-            getString(R.string.default_path)
-        }
-        binding.switchOverwrite.isChecked = state.overwriteExistingFiles
-        binding.switchVerifyIntegrity.isChecked = state.verifyIntegrityAfterRecovery
+            // ── Scanning ──
+            try {
+                currentBinding.switchAutoScan.isChecked = state.autoScanOnStart
+                currentBinding.tvDefaultScanTypeValue.text = state.defaultScanType
+                currentBinding.switchScanNotification.isChecked = state.scanNotificationEnabled
+            } catch (e: Exception) {
+                // View access failure should not crash the fragment
+            }
 
-        // ── Recycle bin ──
-        binding.tvAutoDeleteDaysValue.text = getString(R.string.days, state.recycleBinAutoDeleteDays)
-        binding.tvStorageLimitValue.text = getString(R.string.mb, state.recycleBinStorageLimitMb)
-        binding.switchSecureDelete.isChecked = state.secureDeleteEnabled
-        binding.switchRecycleBinMonitoring.isChecked = state.recycleBinMonitoring
+            // ── Recovery ──
+            try {
+                currentBinding.switchAutoSaveResults.isChecked = state.autoSaveResults
+                currentBinding.tvRecoveryPathValue.text = state.defaultRecoveryPath.ifBlank {
+                    getString(R.string.default_path)
+                }
+                currentBinding.switchOverwrite.isChecked = state.overwriteExistingFiles
+                currentBinding.switchVerifyIntegrity.isChecked = state.verifyIntegrityAfterRecovery
+            } catch (e: Exception) {
+                // View access failure should not crash the fragment
+            }
 
-        // ── Backup ──
-        binding.switchAutoBackup.isChecked = state.autoBackupEnabled
-        binding.tvBackupFrequencyValue.text = state.backupFrequency
-        binding.switchBackupEncryption.isChecked = state.backupEncryptionEnabled
+            // ── Recycle bin ──
+            try {
+                currentBinding.tvAutoDeleteDaysValue.text = getString(R.string.days, state.recycleBinAutoDeleteDays)
+                currentBinding.tvStorageLimitValue.text = getString(R.string.mb, state.recycleBinStorageLimitMb)
+                currentBinding.switchSecureDelete.isChecked = state.secureDeleteEnabled
+                currentBinding.switchRecycleBinMonitoring.isChecked = state.recycleBinMonitoring
+            } catch (e: Exception) {
+                // View access failure should not crash the fragment
+            }
 
-        // ── Security ──
-        binding.tvSecurityLevelValue.text = state.securityLevel.name.lowercase()
-            .replaceFirstChar { it.uppercase() }
-        binding.switchBiometric.isChecked = state.biometricEnabled
-        binding.switchLockOnSwitch.isChecked = state.lockOnAppSwitch
+            // ── Backup ──
+            try {
+                currentBinding.switchAutoBackup.isChecked = state.autoBackupEnabled
+                currentBinding.tvBackupFrequencyValue.text = state.backupFrequency
+                currentBinding.switchBackupEncryption.isChecked = state.backupEncryptionEnabled
+            } catch (e: Exception) {
+                // View access failure should not crash the fragment
+            }
 
-        // ── History ──
-        binding.switchRecoveryHistory.isChecked = state.recoveryHistoryEnabled
-        binding.tvTotalRecoveryCount.text = state.totalRecoveryCount.toString()
-        binding.tvTotalRecoverySize.text = formatFileSize(state.totalRecoverySize)
-        binding.btnClearHistory.isEnabled = !state.isClearingHistory
-        binding.progressClearHistory.visibility =
-            if (state.isClearingHistory) View.VISIBLE else View.GONE
+            // ── Security ──
+            try {
+                currentBinding.tvSecurityLevelValue.text = state.securityLevel.name.lowercase()
+                    .replaceFirstChar { it.uppercase() }
+                currentBinding.switchBiometric.isChecked = state.biometricEnabled
+                currentBinding.switchLockOnSwitch.isChecked = state.lockOnAppSwitch
+            } catch (e: Exception) {
+                // View access failure should not crash the fragment
+            }
 
-        // ── About ──
-        binding.tvAppVersion.text = state.appVersion
-        binding.tvBuildNumber.text = state.buildNumber
+            // ── History ──
+            try {
+                currentBinding.switchRecoveryHistory.isChecked = state.recoveryHistoryEnabled
+                currentBinding.tvTotalRecoveryCount.text = state.totalRecoveryCount.toString()
+                currentBinding.tvTotalRecoverySize.text = formatFileSize(state.totalRecoverySize)
+                currentBinding.btnClearHistory.isEnabled = !state.isClearingHistory
+                currentBinding.progressClearHistory.visibility =
+                    if (state.isClearingHistory) View.VISIBLE else View.GONE
+            } catch (e: Exception) {
+                // View access failure should not crash the fragment
+            }
 
-        // Messages
-        state.successMessage?.let { msg ->
-            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
-            viewModel.clearSuccessMessage()
-        }
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            // ── About ──
+            try {
+                currentBinding.tvAppVersion.text = state.appVersion
+                currentBinding.tvBuildNumber.text = state.buildNumber
+            } catch (e: Exception) {
+                // View access failure should not crash the fragment
+            }
+
+            // Messages
+            state.successMessage?.let { msg ->
+                try {
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                } catch (_: Exception) {}
+                viewModel.clearSuccessMessage()
+            }
+            state.error?.let { error ->
+                try {
+                    Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                } catch (_: Exception) {}
+                viewModel.clearError()
+            }
+        } catch (e: Exception) {
+            // Render state failure should not crash the fragment
         }
     }
 

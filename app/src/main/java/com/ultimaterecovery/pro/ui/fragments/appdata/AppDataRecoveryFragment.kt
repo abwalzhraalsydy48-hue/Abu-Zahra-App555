@@ -24,6 +24,7 @@ import com.ultimaterecovery.pro.databinding.ItemAppDataBinding
 import com.ultimaterecovery.pro.ui.viewmodel.AppDataRecoveryUiState
 import com.ultimaterecovery.pro.ui.viewmodel.AppDataRecoveryViewModel
 import com.ultimaterecovery.pro.ui.viewmodel.AppDataSortBy
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.DateFormat
@@ -72,11 +73,19 @@ class AppDataRecoveryFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentAppDataRecoveryBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentAppDataRecoveryBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreateView")
+            return View(context)
+        } catch (_: Throwable) {
+            return View(context)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        try {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupDataTypeTabs()
@@ -84,6 +93,12 @@ class AppDataRecoveryFragment : Fragment() {
         setupSearch()
         setupControls()
         observeUiState()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onDestroyView() {
@@ -204,45 +219,53 @@ class AppDataRecoveryFragment : Fragment() {
     }
 
     private fun renderState(state: AppDataRecoveryUiState) {
-        if (state.isLoading) {
-            binding.shimmerFrameLayout?.visibility = View.VISIBLE
-            binding.shimmerFrameLayout.startShimmer()
-            binding.recyclerViewAppData?.visibility = View.GONE
-        } else {
-            binding.shimmerFrameLayout?.visibility = View.GONE
-            binding.shimmerFrameLayout.stopShimmer()
-            binding.recyclerViewAppData?.visibility = View.VISIBLE
-        }
+        try {
+        val binding = _binding ?: return
+            if (state.isLoading) {
+                binding.shimmerFrameLayout?.visibility = View.VISIBLE
+                binding.shimmerFrameLayout.startShimmer()
+                binding.recyclerViewAppData?.visibility = View.GONE
+            } else {
+                binding.shimmerFrameLayout?.visibility = View.GONE
+                binding.shimmerFrameLayout.stopShimmer()
+                binding.recyclerViewAppData?.visibility = View.VISIBLE
+            }
 
-        appDataAdapter.submitList(state.filteredAppData)
+            appDataAdapter.submitList(state.filteredAppData)
 
-        val selectedCount = state.selectedIds.size
-        if (selectedCount > 0) {
-            binding.layoutSelectionBar?.visibility = View.VISIBLE
-            binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
-            binding.fabRecover?.visibility = View.VISIBLE
-        } else {
-            binding.layoutSelectionBar?.visibility = View.GONE
-            binding.fabRecover?.visibility = View.GONE
-        }
+            val selectedCount = state.selectedIds.size
+            if (selectedCount > 0) {
+                binding.layoutSelectionBar?.visibility = View.VISIBLE
+                binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
+                binding.fabRecover?.visibility = View.VISIBLE
+            } else {
+                binding.layoutSelectionBar?.visibility = View.GONE
+                binding.fabRecover?.visibility = View.GONE
+            }
 
-        if (state.filteredAppData.isEmpty() && !state.isLoading) {
-            binding.layoutEmptyState?.visibility = View.VISIBLE
-            binding.recyclerViewAppData?.visibility = View.GONE
-        } else {
-            binding.layoutEmptyState?.visibility = View.GONE
-        }
+            if (state.filteredAppData.isEmpty() && !state.isLoading) {
+                binding.layoutEmptyState?.visibility = View.VISIBLE
+                binding.recyclerViewAppData?.visibility = View.GONE
+            } else {
+                binding.layoutEmptyState?.visibility = View.GONE
+            }
 
-        // Recovery progress
-        if (state.isRecovering) {
-            binding.progressRecovery?.visibility = View.VISIBLE
-        } else {
-            binding.progressRecovery?.visibility = View.GONE
-        }
+            // Recovery progress
+            if (state.isRecovering) {
+                binding.progressRecovery?.visibility = View.VISIBLE
+            } else {
+                binding.progressRecovery?.visibility = View.GONE
+            }
 
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            state.error?.let { error ->
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 

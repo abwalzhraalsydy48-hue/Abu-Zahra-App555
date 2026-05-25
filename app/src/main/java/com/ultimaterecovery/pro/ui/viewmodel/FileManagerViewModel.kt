@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
 
@@ -77,9 +78,16 @@ class FileManagerViewModel @Inject constructor(
     val uiState: StateFlow<FileManagerUiState> = _uiState.asStateFlow()
 
     init {
+        try {
         loadStorageVolumes()
         loadBookmarks()
         browseDirectory(fileManager.getDefaultDirectory().absolutePath)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize FileManagerViewModel")
+            _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+        } catch (_: Throwable) {
+            _uiState.value = _uiState.value.copy(isLoading = false, error = "Initialization failed")
+        }
     }
 
     // ──────────────────────────────────────────
@@ -94,6 +102,8 @@ class FileManagerViewModel @Inject constructor(
      */
     fun browseDirectory(path: String) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isLoading = true)
             when (val result = fileManager.listFiles(path)) {
                 is Resource.Success -> {
@@ -119,6 +129,13 @@ class FileManagerViewModel @Inject constructor(
                     )
                 }
                 is Resource.Loading -> { /* keep loading */ }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }
@@ -148,6 +165,8 @@ class FileManagerViewModel @Inject constructor(
 
     fun copyFile(src: String, dst: String) {
         viewModelScope.launch {
+            try {
+
             when (val result = fileManager.copyFile(src, dst)) {
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -160,11 +179,20 @@ class FileManagerViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     fun moveFile(src: String, dst: String) {
         viewModelScope.launch {
+            try {
+
             when (val result = fileManager.moveFile(src, dst)) {
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -177,11 +205,20 @@ class FileManagerViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     fun deleteFile(path: String) {
         viewModelScope.launch {
+            try {
+
             when (val result = fileManager.deleteFile(path)) {
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -194,11 +231,20 @@ class FileManagerViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     fun renameFile(path: String, newName: String) {
         viewModelScope.launch {
+            try {
+
             when (val result = fileManager.renameFile(path, newName)) {
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -211,11 +257,20 @@ class FileManagerViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     fun createFolder(path: String) {
         viewModelScope.launch {
+            try {
+
             when (val result = fileManager.createFolder(path)) {
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -228,11 +283,20 @@ class FileManagerViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     fun createFile(path: String) {
         viewModelScope.launch {
+            try {
+
             when (val result = fileManager.createFile(path)) {
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(
@@ -245,6 +309,13 @@ class FileManagerViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* keep state */ }
             }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -254,6 +325,8 @@ class FileManagerViewModel @Inject constructor(
 
     fun batchCopy(sources: List<String>, destDir: String) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isBatchOperation = true)
             fileManager.batchCopy(sources, destDir)
                 .catch { e ->
@@ -272,11 +345,20 @@ class FileManagerViewModel @Inject constructor(
                         browseDirectory(_uiState.value.currentPath)
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     fun batchMove(sources: List<String>, destDir: String) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isBatchOperation = true)
             fileManager.batchMove(sources, destDir)
                 .catch { e ->
@@ -295,11 +377,20 @@ class FileManagerViewModel @Inject constructor(
                         browseDirectory(_uiState.value.currentPath)
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
     fun batchDelete(paths: List<String>) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isBatchOperation = true)
             fileManager.batchDelete(paths)
                 .catch { e ->
@@ -318,6 +409,13 @@ class FileManagerViewModel @Inject constructor(
                         browseDirectory(_uiState.value.currentPath)
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -341,6 +439,8 @@ class FileManagerViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
+            try {
+
             val results = mutableListOf<FileItem>()
             fileManager.searchFiles(query, _uiState.value.currentPath, extensionFilter)
                 .catch { e ->
@@ -354,6 +454,13 @@ class FileManagerViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(searchResults = results.toList())
                 }
             _uiState.value = _uiState.value.copy(isSearching = false)
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -376,6 +483,8 @@ class FileManagerViewModel @Inject constructor(
 
     fun analyzeStorage(topN: Int = 20) {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isLoading = true)
             when (val result = fileManager.getStorageAnalysis(topN)) {
                 is Resource.Success -> {
@@ -391,6 +500,13 @@ class FileManagerViewModel @Inject constructor(
                     )
                 }
                 is Resource.Loading -> { /* keep loading */ }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }
@@ -457,6 +573,8 @@ class FileManagerViewModel @Inject constructor(
 
     fun previewFile(path: String) {
         viewModelScope.launch {
+            try {
+
             when (val result = fileManager.getFileDetails(path)) {
                 is Resource.Success -> {
                     _uiState.value = _uiState.value.copy(previewFile = result.data)
@@ -465,6 +583,13 @@ class FileManagerViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(error = result.message)
                 }
                 is Resource.Loading -> { /* keep state */ }
+            }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in FileManagerViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
             }
         }
     }

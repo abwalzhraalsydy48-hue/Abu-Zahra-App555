@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────
@@ -70,7 +71,13 @@ class ScanViewModel @Inject constructor(
     private var currentSessionId: Long? = null
 
     init {
-        observeScanEngineState()
+        try {
+            observeScanEngineState()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize ScanViewModel")
+        } catch (_: Throwable) {
+            // Safe default: no observation
+        }
     }
 
     // ──────────────────────────────────────────
@@ -128,6 +135,7 @@ class ScanViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
+            try {
             // Create a database session record
             val session = ScanSessionEntity(
                 startTime = System.currentTimeMillis(),
@@ -162,9 +170,13 @@ class ScanViewModel @Inject constructor(
                         ),
                         error = e.message
                     )
-                    currentSessionId?.let { id ->
-                        scanSessionRepository.cancelSession(id)
-                    }
+                    try {
+                        currentSessionId?.let { id ->
+                            scanSessionRepository.cancelSession(id)
+                        }
+                    } catch (dbE: Exception) {
+                        Timber.e(dbE, "Failed to cancel session after scan error")
+                    } catch (_: Throwable) {}
                 }
                 .collect { state ->
                     _uiState.value = _uiState.value.copy(scanState = state)
@@ -174,26 +186,52 @@ class ScanViewModel @Inject constructor(
                             _uiState.value = _uiState.value.copy(
                                 scanResults = state.results
                             )
-                            currentSessionId?.let { id ->
-                                scanSessionRepository.completeSession(id)
-                                scanSessionRepository.updateProgress(
-                                    id,
-                                    progress = 1f,
-                                    sectorsScanned = 0L,
-                                    totalFilesFound = state.totalFiles,
-                                    totalSizeFound = state.totalSize
-                                )
-                            }
+                            try {
+                                currentSessionId?.let { id ->
+                                    scanSessionRepository.completeSession(id)
+                                    scanSessionRepository.updateProgress(
+                                        id,
+                                        progress = 1f,
+                                        sectorsScanned = 0L,
+                                        totalFilesFound = state.totalFiles,
+                                        totalSizeFound = state.totalSize
+                                    )
+                                }
+                            } catch (dbE: Exception) {
+                                Timber.e(dbE, "Failed to update completed session")
+                            } catch (_: Throwable) {}
                         }
                         is ScanState.Failed -> {
                             _uiState.value = _uiState.value.copy(error = state.error)
-                            currentSessionId?.let { id ->
-                                scanSessionRepository.cancelSession(id)
-                            }
+                            try {
+                                currentSessionId?.let { id ->
+                                    scanSessionRepository.cancelSession(id)
+                                }
+                            } catch (dbE: Exception) {
+                                Timber.e(dbE, "Failed to cancel failed session")
+                            } catch (_: Throwable) {}
                         }
                         else -> { /* Scanning, Paused, Idle, Cancelled — handled by UI */ }
                     }
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Scan operation failed")
+                _uiState.value = _uiState.value.copy(
+                    scanState = ScanState.Failed(
+                        error = e.message ?: "Scan failed unexpectedly",
+                        scanType = type
+                    ),
+                    error = e.message
+                )
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(
+                    scanState = ScanState.Failed(
+                        error = "Scan failed unexpectedly",
+                        scanType = type
+                    ),
+                    error = "Scan failed unexpectedly"
+                )
+            }
         }
     }
 
@@ -217,10 +255,17 @@ class ScanViewModel @Inject constructor(
     fun cancelScan() {
         scanEngine.cancelScan()
         viewModelScope.launch {
-            currentSessionId?.let { id ->
-                scanSessionRepository.cancelSession(id)
+            try {
+                currentSessionId?.let { id ->
+                    scanSessionRepository.cancelSession(id)
+                }
+                currentSessionId = null
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to cancel scan session")
+                currentSessionId = null
+            } catch (_: Throwable) {
+                currentSessionId = null
             }
-            currentSessionId = null
         }
     }
 
@@ -248,6 +293,7 @@ class ScanViewModel @Inject constructor(
         if (results.isEmpty()) return
 
         viewModelScope.launch {
+            try {
             _uiState.value = _uiState.value.copy(isSaving = true)
             val sessionId = currentSessionId ?: 0L
 
@@ -281,6 +327,12 @@ class ScanViewModel @Inject constructor(
                 }
                 is Resource.Loading -> { /* already saving */ }
             }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to save scan results")
+                _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(isSaving = false, error = "Failed to save results")
+            }
         }
     }
 
@@ -297,11 +349,17 @@ class ScanViewModel @Inject constructor(
      */
     private fun observeScanEngineState() {
         viewModelScope.launch {
-            scanEngine.getScanState().collect { state ->
-                // Only update if the state differs from what we already have
-                if (_uiState.value.scanState != state) {
-                    _uiState.value = _uiState.value.copy(scanState = state)
+            try {
+                scanEngine.getScanState().collect { state ->
+                    // Only update if the state differs from what we already have
+                    if (_uiState.value.scanState != state) {
+                        _uiState.value = _uiState.value.copy(scanState = state)
+                    }
                 }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to observe scan engine state")
+            } catch (_: Throwable) {
+                // Safe default: stop observing
             }
         }
     }

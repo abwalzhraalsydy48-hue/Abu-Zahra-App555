@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────
@@ -92,7 +93,14 @@ class PhotoRecoveryViewModel @Inject constructor(
     val uiState: StateFlow<PhotoRecoveryUiState> = _uiState.asStateFlow()
 
     init {
+        try {
         loadPhotos()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to initialize PhotoRecoveryViewModel")
+            _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+        } catch (_: Throwable) {
+            _uiState.value = _uiState.value.copy(isLoading = false, error = "Initialization failed")
+        }
     }
 
     // ──────────────────────────────────────────
@@ -105,6 +113,8 @@ class PhotoRecoveryViewModel @Inject constructor(
      */
     fun loadPhotos() {
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(isLoading = true)
             recoveredFileRepository.getFilesByCategory(FileCategory.PHOTO)
                 .catch { e ->
@@ -135,6 +145,13 @@ class PhotoRecoveryViewModel @Inject constructor(
                         is Resource.Loading -> { /* keep loading */ }
                     }
                 }
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in PhotoRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 
@@ -224,6 +241,8 @@ class PhotoRecoveryViewModel @Inject constructor(
             .filter { it.id in selectedIds }
 
         viewModelScope.launch {
+            try {
+
             _uiState.value = _uiState.value.copy(
                 isRecovering = true,
                 recoveryProgress = null,
@@ -263,6 +282,13 @@ class PhotoRecoveryViewModel @Inject constructor(
                 recoveryBatch = batchResult,
                 selectedPhotoIds = emptySet()
             )
+        
+            } catch (e: Exception) {
+    Timber.e(e, "Database error in PhotoRecoveryViewModel")
+    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+            } catch (_: Throwable) {
+    _uiState.value = _uiState.value.copy(isLoading = false, error = "Unexpected error")
+            }
         }
     }
 

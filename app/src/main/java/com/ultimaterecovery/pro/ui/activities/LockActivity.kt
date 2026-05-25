@@ -13,6 +13,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.ultimaterecovery.pro.R
 import com.ultimaterecovery.pro.databinding.ActivityLockBinding
 import java.util.concurrent.Executor
+import timber.log.Timber
 
 /**
  * App lock screen activity.
@@ -65,34 +66,41 @@ class LockActivity : AppCompatActivity() {
     // ──────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        _binding = ActivityLockBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        try {
+            super.onCreate(savedInstanceState)
+            _binding = ActivityLockBinding.inflate(layoutInflater)
+            setContentView(binding.root)
 
-        setupNumpad()
-        setupBiometric()
-        animateFingerprintIcon()
+            setupNumpad()
+            setupBiometric()
+            animateFingerprintIcon()
 
-        // Determine which auth method to show based on security level
-        val securityLevel = intent.getStringExtra(EXTRA_SECURITY_LEVEL) ?: "PIN"
-        when (securityLevel) {
-            "BIOMETRIC" -> {
-                binding.layoutPinInput?.visibility = View.GONE
-                showBiometricPrompt()
+            // Determine which auth method to show based on security level
+            val securityLevel = intent.getStringExtra(EXTRA_SECURITY_LEVEL) ?: "PIN"
+            when (securityLevel) {
+                "BIOMETRIC" -> {
+                    binding.layoutPinInput?.visibility = View.GONE
+                    showBiometricPrompt()
+                }
+                "PIN_AND_BIOMETRIC" -> {
+                    binding.layoutPinInput?.visibility = View.VISIBLE
+                    binding.btnFingerprint?.visibility = View.VISIBLE
+                    showBiometricPrompt()
+                }
+                else -> {
+                    binding.layoutPinInput?.visibility = View.VISIBLE
+                    binding.btnFingerprint?.visibility = View.GONE
+                }
             }
-            "PIN_AND_BIOMETRIC" -> {
-                binding.layoutPinInput?.visibility = View.VISIBLE
-                binding.btnFingerprint?.visibility = View.VISIBLE
-                showBiometricPrompt()
-            }
-            else -> {
-                binding.layoutPinInput?.visibility = View.VISIBLE
-                binding.btnFingerprint?.visibility = View.GONE
-            }
+
+            // Biometric fallback button
+            binding.btnFingerprint.setOnClickListener { showBiometricPrompt() }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreate")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
-
-        // Biometric fallback button
-        binding.btnFingerprint.setOnClickListener { showBiometricPrompt() }
     }
 
     override fun onDestroy() {

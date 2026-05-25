@@ -27,6 +27,7 @@ import com.ultimaterecovery.pro.manager.FileManager.FileItem
 import com.ultimaterecovery.pro.manager.FileManager.SortOrder
 import com.ultimaterecovery.pro.ui.viewmodel.FileManagerUiState
 import com.ultimaterecovery.pro.ui.viewmodel.FileManagerViewModel
+import timber.log.Timber
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.File
@@ -78,11 +79,19 @@ class FileManagerFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentFileManagerBinding.inflate(inflater, container, false)
-        return binding.root
+        try {
+            _binding = FragmentFileManagerBinding.inflate(inflater, container, false)
+            return binding.root
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onCreateView")
+            return View(context)
+        } catch (_: Throwable) {
+            return View(context)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        try {
         super.onViewCreated(view, savedInstanceState)
         setupToolbar()
         setupRecyclerView()
@@ -90,6 +99,12 @@ class FileManagerFragment : Fragment() {
         setupControls()
         setupMenu()
         observeUiState()
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error in onViewCreated")
+        } catch (_: Throwable) {
+            // Prevent crash
+        }
     }
 
     override fun onDestroyView() {
@@ -212,64 +227,72 @@ class FileManagerFragment : Fragment() {
     }
 
     private fun renderState(state: FileManagerUiState) {
-        // Loading
-        if (state.isLoading) {
-            binding.shimmerFrameLayout?.visibility = View.VISIBLE
-            binding.shimmerFrameLayout.startShimmer()
-            binding.recyclerViewFiles?.visibility = View.GONE
-        } else {
-            binding.shimmerFrameLayout?.visibility = View.GONE
-            binding.shimmerFrameLayout.stopShimmer()
-            binding.recyclerViewFiles?.visibility = View.VISIBLE
-        }
+        try {
+        val binding = _binding ?: return
+            // Loading
+            if (state.isLoading) {
+                binding.shimmerFrameLayout?.visibility = View.VISIBLE
+                binding.shimmerFrameLayout.startShimmer()
+                binding.recyclerViewFiles?.visibility = View.GONE
+            } else {
+                binding.shimmerFrameLayout?.visibility = View.GONE
+                binding.shimmerFrameLayout.stopShimmer()
+                binding.recyclerViewFiles?.visibility = View.VISIBLE
+            }
 
-        // Files list or search results
-        val displayList = if (state.isSearching) state.searchResults else state.files
-        fileAdapter.submitList(displayList)
+            // Files list or search results
+            val displayList = if (state.isSearching) state.searchResults else state.files
+            fileAdapter.submitList(displayList)
 
-        // Breadcrumb
-        renderBreadcrumb(state.currentPath)
+            // Breadcrumb
+            renderBreadcrumb(state.currentPath)
 
-        // Path label
-        binding.tvCurrentPath.text = state.currentPath
+            // Path label
+            binding.tvCurrentPath.text = state.currentPath
 
-        // Selection
-        val selectedCount = state.selectedFileIds.size
-        if (selectedCount > 0) {
-            binding.layoutSelectionBar?.visibility = View.VISIBLE
-            binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
-        } else {
-            binding.layoutSelectionBar?.visibility = View.GONE
-        }
+            // Selection
+            val selectedCount = state.selectedFileIds.size
+            if (selectedCount > 0) {
+                binding.layoutSelectionBar?.visibility = View.VISIBLE
+                binding.tvSelectedCount.text = getString(R.string.selected_count, selectedCount)
+            } else {
+                binding.layoutSelectionBar?.visibility = View.GONE
+            }
 
-        // Empty state
-        if (displayList.isEmpty() && !state.isLoading) {
-            binding.layoutEmptyState?.visibility = View.VISIBLE
-            binding.recyclerViewFiles?.visibility = View.GONE
-        } else {
-            binding.layoutEmptyState?.visibility = View.GONE
-        }
+            // Empty state
+            if (displayList.isEmpty() && !state.isLoading) {
+                binding.layoutEmptyState?.visibility = View.VISIBLE
+                binding.recyclerViewFiles?.visibility = View.GONE
+            } else {
+                binding.layoutEmptyState?.visibility = View.GONE
+            }
 
-        // Batch operation progress
-        state.batchProgress?.let { progress ->
-            binding.layoutBatchProgress?.visibility = View.VISIBLE
-            val percent = if (progress.total > 0) (progress.processed * 100 / progress.total) else 0
-            binding.progressBatch.progress = percent
-            binding.tvBatchProgress.text = getString(R.string.batch_progress, progress.processed, progress.total)
-        } ?: run {
-            binding.layoutBatchProgress?.visibility = View.GONE
-        }
+            // Batch operation progress
+            state.batchProgress?.let { progress ->
+                binding.layoutBatchProgress?.visibility = View.VISIBLE
+                val percent = if (progress.total > 0) (progress.processed * 100 / progress.total) else 0
+                binding.progressBatch.progress = percent
+                binding.tvBatchProgress.text = getString(R.string.batch_progress, progress.processed, progress.total)
+            } ?: run {
+                binding.layoutBatchProgress?.visibility = View.GONE
+            }
 
-        // Success message
-        state.successMessage?.let { msg ->
-            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
-            viewModel.clearSuccessMessage()
-        }
+            // Success message
+            state.successMessage?.let { msg ->
+                Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+                viewModel.clearSuccessMessage()
+            }
 
-        // Error
-        state.error?.let { error ->
-            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
-            viewModel.clearError()
+            // Error
+            state.error?.let { error ->
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                viewModel.clearError()
+            }
+
+        } catch (e: Exception) {
+            Timber.e(e, "Error rendering state")
+        } catch (_: Throwable) {
+            // Prevent crash
         }
     }
 
