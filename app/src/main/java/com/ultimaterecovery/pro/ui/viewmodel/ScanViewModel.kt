@@ -124,10 +124,15 @@ class ScanViewModel @Inject constructor(
         type: ScanType = _uiState.value.selectedScanType,
         categories: List<FileCategory> = _uiState.value.selectedCategories
     ) {
-        if (_uiState.value.scanState is ScanState.Scanning) return
+        if (_uiState.value.scanState is ScanState.Scanning) {
+            Timber.w("Scan already in progress, ignoring startScan() call")
+            return
+        }
 
+        // Reset previous results but immediately set Scanning state
+        // to avoid a flash of Idle state in the UI
         _uiState.value = _uiState.value.copy(
-            scanState = ScanState.Idle,
+            scanState = ScanState.Scanning(scanType = type),
             scanResults = emptyList(),
             error = null,
             selectedScanType = type,
@@ -137,32 +142,61 @@ class ScanViewModel @Inject constructor(
         viewModelScope.launch {
             try {
             // Create a database session record
-            val session = ScanSessionEntity(
-                startTime = System.currentTimeMillis(),
-                scanType = type,
-                status = ScanSessionEntity.ScanStatus.RUNNING,
-                storagePath = android.os.Environment.getExternalStorageDirectory().absolutePath,
-                isRootScan = type in listOf(ScanType.DEEP, ScanType.RAW, ScanType.PARTITION)
-            )
-            val createResult = scanSessionRepository.createSession(session)
-            if (createResult is Resource.Success) {
-                currentSessionId = createResult.data
+            try {
+                val session = ScanSessionEntity(
+                    startTime = System.currentTimeMillis(),
+                    scanType = type,
+                    status = ScanSessionEntity.ScanStatus.RUNNING,
+                    storagePath = android.os.Environment.getExternalStorageDirectory().absolutePath,
+                    isRootScan = type in listOf(ScanType.DEEP, ScanType.RAW, ScanType.PARTITION)
+                )
+                val createResult = scanSessionRepository.createSession(session)
+                if (createResult is Resource.Success) {
+                    currentSessionId = createResult.data
+                }
+            } catch (dbE: Exception) {
+                Timber.e(dbE, "Failed to create scan session record")
+                // Continue with scan even if session record fails
+            } catch (_: Throwable) {
+                // Database might be unavailable - continue anyway
             }
 
             val paths = listOf(
                 android.os.Environment.getExternalStorageDirectory().absolutePath
             )
 
-            val scanFlow = when (type) {
-                ScanType.QUICK     -> scanEngine.startQuickScan(paths, categories)
-                ScanType.DEEP      -> scanEngine.startDeepScan(paths, categories)
-                ScanType.SIGNATURE -> scanEngine.startSignatureScan(paths)
-                ScanType.RAW       -> scanEngine.startRawScan(paths.firstOrNull() ?: "/dev/block/sda1")
-                ScanType.PARTITION -> scanEngine.startPartitionScan()
+            val scanFlow = try {
+                when (type) {
+                    ScanType.QUICK     -> scanEngine.startQuickScan(paths, categories)
+                    ScanType.DEEP      -> scanEngine.startDeepScan(paths, categories)
+                    ScanType.SIGNATURE -> scanEngine.startSignatureScan(paths)
+                    ScanType.RAW       -> scanEngine.startRawScan(paths.firstOrNull() ?: "/dev/block/sda1")
+                    ScanType.PARTITION -> scanEngine.startPartitionScan()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Scan engine failed to start")
+                _uiState.value = _uiState.value.copy(
+                    scanState = ScanState.Failed(
+                        error = e.message ?: "Failed to start scan engine",
+                        scanType = type
+                    ),
+                    error = e.message
+                )
+                return@launch
+            } catch (_: Throwable) {
+                _uiState.value = _uiState.value.copy(
+                    scanState = ScanState.Failed(
+                        error = "Failed to start scan engine",
+                        scanType = type
+                    ),
+                    error = "Failed to start scan engine"
+                )
+                return@launch
             }
 
             scanFlow
                 .catch { e ->
+                    Timber.e(e, "Scan flow error")
                     _uiState.value = _uiState.value.copy(
                         scanState = ScanState.Failed(
                             error = e.message ?: "Scan failed unexpectedly",
@@ -211,7 +245,19 @@ class ScanViewModel @Inject constructor(
                                 Timber.e(dbE, "Failed to cancel failed session")
                             } catch (_: Throwable) {}
                         }
-                        else -> { /* Scanning, Paused, Idle, Cancelled — handled by UI */ }
+                        is ScanState.Scanning -> {
+                            // State already updated above via copy(scanState = state)
+                            Timber.d("Scan progress: ${(state.progress * 100).toInt()}%, found: ${state.filesFound}")
+                        }
+                        is ScanState.Paused -> {
+                            Timber.d("Scan paused at ${state.progress}")
+                        }
+                        is ScanState.Cancelled -> {
+                            Timber.d("Scan cancelled")
+                        }
+                        is ScanState.Idle -> {
+                            // Engine reset to idle - unlikely during our scan but handle gracefully
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -239,21 +285,39 @@ class ScanViewModel @Inject constructor(
      * Pauses the currently running scan.
      */
     fun pauseScan() {
-        scanEngine.pauseScan()
+        try {
+            scanEngine.pauseScan()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to pause scan")
+        } catch (_: Throwable) {
+            // ScanEngine might throw if it's in a bad state
+        }
     }
 
     /**
      * Resumes a previously paused scan.
      */
     fun resumeScan() {
-        scanEngine.resumeScan()
+        try {
+            scanEngine.resumeScan()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to resume scan")
+        } catch (_: Throwable) {
+            // ScanEngine might throw if it's in a bad state
+        }
     }
 
     /**
      * Cancels the currently running or paused scan.
      */
     fun cancelScan() {
-        scanEngine.cancelScan()
+        try {
+            scanEngine.cancelScan()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to cancel scan on engine")
+        } catch (_: Throwable) {
+            // Engine might be in a bad state
+        }
         viewModelScope.launch {
             try {
                 currentSessionId?.let { id ->

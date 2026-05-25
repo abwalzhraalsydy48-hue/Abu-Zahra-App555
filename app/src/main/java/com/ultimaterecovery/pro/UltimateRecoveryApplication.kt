@@ -14,7 +14,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.topjohnwu.superuser.Shell
 import com.ultimaterecovery.pro.data.local.database.UltimateRecoveryDatabase
 import com.ultimaterecovery.pro.engine.root.RootManager
 import com.ultimaterecovery.pro.utils.backup.BackupManager
@@ -145,22 +144,9 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
         // Initialize libsu Shell with maximum error protection.
         // On some devices (itel, Huawei, etc.), the native .so libraries
         // may not load properly, causing UnsatisfiedLinkError or other
-        // runtime errors. We must catch ALL Throwables to prevent crash.
-        try {
-            val builder = Shell.Builder.create()
-            Shell.setDefaultBuilder(builder)
-        } catch (e: Throwable) {
-            // libsu initialization failure should not crash the app
-            // Must catch Throwable because libsu can throw:
-            // - UnsatisfiedLinkError (Error, not Exception)
-            // - NoClassDefFoundError if the library is missing
-            // - ExceptionInInitializerError from static init blocks
-            try {
-                android.util.Log.w(TAG, "libsu Shell initialization failed: ${e.message}")
-            } catch (_: Exception) {
-                // Logging might not be available yet
-            }
-        }
+        // runtime errors. We use reflection to check class availability
+        // first, and lazy initialization to defer the actual native load.
+        initShellSafely()
 
         try {
             // 1. Initialize Timber logging
@@ -398,6 +384,87 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs.edit().putInt(KEY_THEME_MODE, mode).apply()
         AppCompatDelegate.setDefaultNightMode(mode)
+    }
+
+    // ──────────────────────────────────────────────
+    // Shell Safe Initialization
+    // ──────────────────────────────────────────────
+
+    /**
+     * Safely initializes the libsu Shell using reflection and lazy loading.
+     *
+     * On devices where libsu's native libraries are incompatible or missing
+     * (itel, Huawei, some Android 13 devices), calling Shell.Builder.create()
+     * directly can trigger class loading that throws UnsatisfiedLinkError,
+     * NoClassDefFoundError, or ExceptionInInitializerError.
+     *
+     * This method:
+     * 1. Checks if the Shell class is available via reflection first
+     * 2. Defers the actual initialization to a background thread
+     * 3. Catches all Throwables to prevent any crash
+     */
+    private fun initShellSafely() {
+        // Step 1: Check if the Shell class can even be found
+        val shellClass = try {
+            Class.forName("com.topjohnwu.superuser.Shell")
+        } catch (e: Throwable) {
+            // Class not found - libsu is not on the classpath
+            // This is fine; the app can work without root
+            try {
+                android.util.Log.i(TAG, "libsu Shell class not available, skipping init")
+            } catch (_: Exception) {}
+            return
+        }
+
+        // Step 2: Check if Shell.Builder exists
+        try {
+            Class.forName("com.topjohnwu.superuser.Shell\$Builder")
+        } catch (e: Throwable) {
+            try {
+                android.util.Log.i(TAG, "libsu Shell.Builder class not available, skipping init")
+            } catch (_: Exception) {}
+            return
+        }
+
+        // Step 3: Attempt initialization on a background thread to avoid
+        // blocking or crashing the main thread if native library loading fails
+        Thread {
+            try {
+                val builderMethod = shellClass.getMethod("create")
+                val builder = builderMethod.invoke(null) // Shell.Builder.create()
+
+                val setDefaultBuilder = shellClass.getMethod("setDefaultBuilder", shellClass)
+                // Get the actual builder class to call build()
+                val builderClass = builder?.javaClass
+                val buildMethod = builderClass?.getMethod("build")
+                val builtShell = buildMethod?.invoke(builder)
+
+                // Set as default if we got a valid shell
+                if (builtShell != null) {
+                    setDefaultBuilder.invoke(null, builtShell)
+                }
+
+                try {
+                    android.util.Log.i(TAG, "libsu Shell initialized successfully on background thread")
+                } catch (_: Exception) {}
+            } catch (e: UnsatisfiedLinkError) {
+                try {
+                    android.util.Log.w(TAG, "libsu native library not compatible with this device: ${e.message}")
+                } catch (_: Exception) {}
+            } catch (e: NoClassDefFoundError) {
+                try {
+                    android.util.Log.w(TAG, "libsu class definition not found: ${e.message}")
+                } catch (_: Exception) {}
+            } catch (e: ExceptionInInitializerError) {
+                try {
+                    android.util.Log.w(TAG, "libsu static initializer failed: ${e.message}")
+                } catch (_: Exception) {}
+            } catch (e: Throwable) {
+                try {
+                    android.util.Log.w(TAG, "libsu Shell initialization failed: ${e.message}")
+                } catch (_: Exception) {}
+            }
+        }.start()
     }
 
     // ──────────────────────────────────────────────

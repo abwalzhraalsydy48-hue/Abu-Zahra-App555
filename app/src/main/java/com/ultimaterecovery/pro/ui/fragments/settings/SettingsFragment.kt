@@ -98,72 +98,106 @@ class SettingsFragment : Fragment() {
     // ──────────────────────────────────────────
 
     private fun setupClickListeners() {
+        val currentBinding = _binding ?: return
+
         // ── Appearance ──
-        binding.itemTheme.setOnClickListener { showThemeDialog() }
-        binding.itemLanguage.setOnClickListener { showLanguageDialog() }
-        binding.switchDynamicColor.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setDynamicColor(isChecked)
+        try {
+            currentBinding.itemTheme.setOnClickListener { showThemeDialog() }
+            currentBinding.itemLanguage.setOnClickListener { showLanguageDialog() }
+            currentBinding.switchDynamicColor.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setDynamicColor(isChecked)
+            }
+        } catch (e: Exception) {
+            // View access failure should not crash the fragment
         }
 
         // ── Scanning ──
-        binding.switchAutoScan.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setAutoScanOnStart(isChecked)
-        }
-        binding.itemDefaultScanType.setOnClickListener { showDefaultScanTypeDialog() }
-        binding.switchScanNotification.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setScanNotificationEnabled(isChecked)
+        try {
+            currentBinding.switchAutoScan.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setAutoScanOnStart(isChecked)
+            }
+            currentBinding.itemDefaultScanType.setOnClickListener { showDefaultScanTypeDialog() }
+            currentBinding.switchScanNotification.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setScanNotificationEnabled(isChecked)
+            }
+        } catch (e: Exception) {
+            // View access failure should not crash the fragment
         }
 
         // ── Recovery ──
-        binding.switchAutoSaveResults.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setAutoSaveResults(isChecked)
-        }
-        binding.itemRecoveryPath.setOnClickListener { showRecoveryPathDialog() }
-        binding.switchOverwrite.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setOverwriteExistingFiles(isChecked)
-        }
-        binding.switchVerifyIntegrity.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setVerifyIntegrity(isChecked)
+        try {
+            currentBinding.switchAutoSaveResults.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setAutoSaveResults(isChecked)
+            }
+            currentBinding.itemRecoveryPath.setOnClickListener { showRecoveryPathDialog() }
+            currentBinding.switchOverwrite.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setOverwriteExistingFiles(isChecked)
+            }
+            currentBinding.switchVerifyIntegrity.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setVerifyIntegrity(isChecked)
+            }
+        } catch (e: Exception) {
+            // View access failure should not crash the fragment
         }
 
         // ── Recycle bin ──
-        binding.itemAutoDeleteDays.setOnClickListener { showAutoDeleteDaysDialog() }
-        binding.itemStorageLimit.setOnClickListener { showStorageLimitDialog() }
-        binding.switchSecureDelete.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setSecureDeleteEnabled(isChecked)
-        }
-        binding.switchRecycleBinMonitoring.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setRecycleBinMonitoring(isChecked)
+        try {
+            currentBinding.itemAutoDeleteDays.setOnClickListener { showAutoDeleteDaysDialog() }
+            currentBinding.itemStorageLimit.setOnClickListener { showStorageLimitDialog() }
+            currentBinding.switchSecureDelete.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setSecureDeleteEnabled(isChecked)
+            }
+            currentBinding.switchRecycleBinMonitoring.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setRecycleBinMonitoring(isChecked)
+            }
+        } catch (e: Exception) {
+            // View access failure should not crash the fragment
         }
 
         // ── Backup ──
-        binding.switchAutoBackup.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setAutoBackupEnabled(isChecked)
-        }
-        binding.itemBackupFrequency.setOnClickListener { showBackupFrequencyDialog() }
-        binding.switchBackupEncryption.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setBackupEncryptionEnabled(isChecked)
+        try {
+            currentBinding.switchAutoBackup.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setAutoBackupEnabled(isChecked)
+            }
+            currentBinding.itemBackupFrequency.setOnClickListener { showBackupFrequencyDialog() }
+            currentBinding.switchBackupEncryption.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setBackupEncryptionEnabled(isChecked)
+            }
+        } catch (e: Exception) {
+            // View access failure should not crash the fragment
         }
 
         // ── Security ──
-        binding.itemSecurityLevel.setOnClickListener { showSecurityLevelDialog() }
-        binding.switchBiometric.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setBiometricEnabled(isChecked)
-        }
-        binding.switchLockOnSwitch.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setLockOnAppSwitch(isChecked)
+        try {
+            currentBinding.itemSecurityLevel.setOnClickListener { showSecurityLevelDialog() }
+            currentBinding.switchBiometric.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setBiometricEnabled(isChecked)
+            }
+            currentBinding.switchLockOnSwitch.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setLockOnAppSwitch(isChecked)
+            }
+        } catch (e: Exception) {
+            // View access failure should not crash the fragment
         }
 
         // ── History ──
-        binding.switchRecoveryHistory.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setRecoveryHistoryEnabled(isChecked)
+        try {
+            currentBinding.switchRecoveryHistory.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setRecoveryHistoryEnabled(isChecked)
+            }
+            currentBinding.btnClearHistory.setOnClickListener { confirmClearHistory() }
+        } catch (e: Exception) {
+            // View access failure should not crash the fragment
         }
-        binding.btnClearHistory.setOnClickListener { confirmClearHistory() }
 
         // ── About ──
-        binding.itemPrivacyPolicy.setOnClickListener { openUrl("https://ultimaterecovery.pro/privacy") }
-        binding.itemTerms.setOnClickListener { openUrl("https://ultimaterecovery.pro/terms") }
-        binding.itemRateApp.setOnClickListener { openPlayStore() }
+        try {
+            currentBinding.itemPrivacyPolicy.setOnClickListener { openUrl("https://ultimaterecovery.pro/privacy") }
+            currentBinding.itemTerms.setOnClickListener { openUrl("https://ultimaterecovery.pro/terms") }
+            currentBinding.itemRateApp.setOnClickListener { openPlayStore() }
+        } catch (e: Exception) {
+            // View access failure should not crash the fragment
+        }
     }
 
     // ──────────────────────────────────────────

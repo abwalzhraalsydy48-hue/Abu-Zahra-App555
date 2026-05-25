@@ -25,7 +25,7 @@
 bin/
 gen/
 out/
-release/
+# release/ folder allowed for APK distribution
 
 # ============================================================================
 # Gradle files

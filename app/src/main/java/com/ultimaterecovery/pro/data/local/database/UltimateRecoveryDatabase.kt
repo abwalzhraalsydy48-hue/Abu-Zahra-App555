@@ -107,11 +107,13 @@ abstract class UltimateRecoveryDatabase : RoomDatabase() {
                         "ultimate_recovery_db"
                     )
                         .setJournalMode(JournalMode.TRUNCATE)
+                        .fallbackToDestructiveMigration()
                         .addCallback(SafeDatabaseCallback())
                         .build()
                         .also { INSTANCE = it }
                 } catch (e: Exception) {
                     // If database creation fails, delete and recreate
+                    android.util.Log.e("UltimateRecoveryDB", "Database creation failed, attempting destructive fallback", e)
                     try {
                         context.applicationContext.deleteDatabase("ultimate_recovery_db")
                         Room.databaseBuilder(
@@ -120,10 +122,12 @@ abstract class UltimateRecoveryDatabase : RoomDatabase() {
                             "ultimate_recovery_db"
                         )
                             .setJournalMode(JournalMode.TRUNCATE)
+                            .fallbackToDestructiveMigration()
                             .addCallback(SafeDatabaseCallback())
                             .build()
                             .also { INSTANCE = it }
                     } catch (e2: Exception) {
+                        android.util.Log.e("UltimateRecoveryDB", "Database recreation also failed", e2)
                         throw e2
                     }
                 }
