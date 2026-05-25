@@ -899,9 +899,7 @@
     <string name="video_recovery">Video Recovery</string>
     <string name="md_theme_light_secondary">#FF625B71</string>
     <string name="menu_photo_recovery">Photo Recovery</string>
-</resources>
-
-    <!-- ==================== MISSING STRINGS ADDED FOR FIX ==================== -->
+<!-- ==================== MISSING STRINGS ADDED FOR FIX ==================== -->
     <string name="app_description_short">Recover your lost data in seconds</string>
     <string name="root_access_granted">Root Access Granted</string>
     <string name="root_granted">Root Granted</string>
@@ -939,3 +937,4 @@
     <string name="deny">Deny</string>
     <string name="permission_rationale_title">Permissions Needed</string>
     <string name="permission_rationale_message">This app needs storage and other permissions to scan and recover your deleted files. Please grant the required permissions.</string>
+</resources>
