@@ -23,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -104,7 +105,7 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
 
     private fun initTimber() {
         if (BuildConfig.DEBUG) {
-            timber.log.Timber.plant(object : timber.log.Timber.DebugTree() {
+            Timber.plant(object : Timber.DebugTree() {
                 override fun createStackElementTag(element: StackTraceElement): String {
                     return "URP-${super.createStackElementTag(element)}:${element.lineNumber}"
                 }
