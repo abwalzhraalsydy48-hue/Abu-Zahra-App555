@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ────────────────────────────────────────────── -->
+<!-- Activity Scan Results Layout                   -->
+── ────────────────────────────────────────────── -->
+<!-- شاشة عرض نتائج المسح مع تبويبات الفئات        -->
+<!-- ────────────────────────────────────────────── -->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:background="@color/background"
+    tools:context=".ui.activities.ScanResultsActivity">
+
+    <!-- ────────────────────────────────────────── -->
+    <!-- App Bar with Toolbar and Tabs             -->
+    <!-- ────────────────────────────────────────── -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true"
+        app:liftOnScroll="true">
+
+        <!-- Toolbar -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/toolbar_height"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:title="@string/title_scan_result"
+            app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
+            app:subtitleTextAppearance="@style/TextAppearance.Material3.BodySmall"
+            app:subtitle="@string/scan_result_subtitle" />
+
+        <!-- Category Tabs -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tabLayoutCategories"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/tab_height"
+            android:background="@color/surface"
+            app:tabMode="scrollable"
+            app:tabGravity="fill"
+            app:tabIndicatorHeight="@dimen/tab_indicator_height"
+            app:tabIndicatorColor="@color/primary"
+            app:tabIndicatorFullWidth="false"
+            app:tabIndicator="@drawable/bg_tab_indicator"
+            app:tabTextColor="@color/on_surface_variant"
+            app:tabSelectedTextColor="@color/primary"
+            app:tabTextAppearance="@style/TextAppearance.Material3.LabelLarge"
+            app:tabIconTint="@color/tab_icon_color"
+            app:tabPaddingStart="@dimen/tab_padding_horizontal"
+            app:tabPaddingEnd="@dimen/tab_padding_horizontal">
+
+            <!-- Tabs will be added programmatically -->
+
+        </com.google.android.material.tabs.TabLayout>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <!-- ────────────────────────────────────────── -->
+    <!-- Main Content Area                         -->
+    <!-- ────────────────────────────────────────── -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- ────────────────────────────────────── -->
+            <!-- Loading / Progress View               -->
+            <!-- ────────────────────────────────────── -->
+            <LinearLayout
+                android:id="@+id/layoutLoading"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="@dimen/spacing_3xl"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:indeterminate="true"
+                    app:indicatorSize="@dimen/progress_circle_size_large"
+                    app:trackThickness="@dimen/progress_circle_stroke_width_large"
+                    app:indicatorColor="@color/primary" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_md"
+                    android:text="@string/progress_loading"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                    android:textColor="@color/on_surface_variant" />
+
+            </LinearLayout>
+
+            <!-- ────────────────────────────────────── -->
+            <!-- Empty State View                      -->
+            <!-- ────────────────────────────────────── -->
+            <LinearLayout
+                android:id="@+id/layoutEmptyState"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="@dimen/spacing_3xl"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <ImageView
+                    android:layout_width="@dimen/icon_size_massive"
+                    android:layout_height="@dimen/icon_size_massive"
+                    android:src="@drawable/ic_file"
+                    android:alpha="0.5"
+                    app:tint="@color/on_surface_variant"
+                    android:contentDescription="@string/scan_no_results" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_lg"
+                    android:text="@string/scan_no_results"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
+                    android:textColor="@color/on_surface" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:text="@string/scan_no_results_hint"
+                    android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
+                    android:textColor="@color/on_surface_variant"
+                    android:gravity="center" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnScanAgain"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/button_height"
+                    android:layout_marginTop="@dimen/spacing_xl"
+                    android:text="@string/scan_start"
+                    app:icon="@drawable/ic_scan"
+                    style="@style/Widget.Material3.Button.FilledTonalButton" />
+
+            </LinearLayout>
+
+            <!-- ────────────────────────────────────── -->
+            <!-- Files RecyclerView                    -->
+            <!-- ────────────────────────────────────── -->
+            <LinearLayout
+                android:id="@+id/layoutContent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <!-- Summary Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="@dimen/margin_screen_horizontal"
+                    app:cardCornerRadius="@dimen/card_corner_radius"
+                    app:cardElevation="@dimen/card_elevation"
+                    app:strokeWidth="0dp"
+                    style="@style/Widget.Material3.CardView.Filled">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="@dimen/card_padding">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="@dimen/icon_size_medium"
+                                android:layout_height="@dimen/icon_size_medium"
+                                android:src="@drawable/ic_check_circle"
+                                app:tint="@color/success" />
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:id="@+id/textTotalFiles"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="@dimen/spacing_sm"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="@color/on_surface"
+                                tools:text="125 files found (2.4 GB)" />
+
+                        </LinearLayout>
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/textSelectedCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant"
+                            android:visibility="gone"
+                            tools:visibility="visible"
+                            tools:text="5 files selected" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Selection Action Bar -->
+                <LinearLayout
+                    android:id="@+id/layoutSelectionBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="@dimen/margin_screen_horizontal"
+                    android:paddingVertical="@dimen/spacing_sm"
+                    android:background="@color/surface_container"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSelectAll"
+                        android:layout_width="wrap_content"
+                        android:layout_height="@dimen/button_height_small"
+                        android:text="@string/action_select_all"
+                        app:icon="@drawable/ic_select_all"
+                        style="@style/Widget.Material3.Button.TextButton" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDeselectAll"
+                        android:layout_width="wrap_content"
+                        android:layout_height="@dimen/button_height_small"
+                        android:text="@string/action_deselect_all"
+                        style="@style/Widget.Material3.Button.TextButton" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/textSelectedSummary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Material3.LabelMedium"
+                        android:textColor="@color/primary"
+                        tools:text="5 selected (12.5 MB)" />
+
+                </LinearLayout>
+
+                <!-- RecyclerView -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerViewFiles"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:paddingBottom="@dimen/spacing_8xl"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    tools:listitem="@layout/item_recovered_file"
+                    tools:itemCount="5" />
+
+            </LinearLayout>
+
+            <!-- ────────────────────────────────────── -->
+            <!-- Recovery Progress Overlay             -->
+            <!-- ────────────────────────────────────── -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/layoutRecoveryProgress"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/semi_transparent_black"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="@dimen/card_corner_radius"
+                    app:cardElevation="@dimen/card_elevation_high"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:padding="@dimen/spacing_3xl"
+                        android:minWidth="200dp">
+
+                        <com.google.android.material.progressindicator.CircularProgressIndicator
+                            android:id="@+id/progressRecovery"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            app:indicatorSize="@dimen/progress_circle_size_large"
+                            app:trackThickness="@dimen/progress_circle_stroke_width_large"
+                            app:indicatorColor="@color/primary"
+                            app:trackColor="@color/surface_variant"
+                            android:max="100"
+                            tools:progress="65" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/textRecoveryProgress"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_md"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                            android:textColor="@color/on_surface"
+                            tools:text="Recovering... 65%" />
+
+                        <com.google.android.material.textview.MaterialTextView
+                            android:id="@+id/textRecoveryFiles"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_xs"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="@color/on_surface_variant"
+                            tools:text="File 3 of 5" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </FrameLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- ────────────────────────────────────────── -->
+    <!-- Recover Selected FAB                      -->
+    <!-- ────────────────────────────────────────── -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabRecoverSelected"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/fab_margin"
+        android:text="@string/scan_result_recover_selected"
+        android:visibility="gone"
+        app:icon="@drawable/ic_recover"
+        app:backgroundTint="@color/primary"
+        app:iconTint="@color/on_primary"
+        android:textColor="@color/on_primary"
+        tools:visibility="visible" />
+
+    <!-- ────────────────────────────────────────── -->
+    <!-- Shimmer Loading Effect                    -->
+    <!-- ────────────────────────────────────────── -->
+    <com.facebook.shimmer.ShimmerFrameLayout
+        android:id="@+id/shimmerLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/margin_screen_horizontal">
+
+            <include layout="@layout/item_recovered_file" />
+            <include layout="@layout/item_recovered_file" />
+            <include layout="@layout/item_recovered_file" />
+            <include layout="@layout/item_recovered_file" />
+            <include layout="@layout/item_recovered_file" />
+            <include layout="@layout/item_recovered_file" />
+
+        </LinearLayout>
+
+    </com.facebook.shimmer.ShimmerFrameLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

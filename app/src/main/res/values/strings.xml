@@ -901,4 +901,16 @@
     <string name="menu_photo_recovery">Photo Recovery</string>
 <!-- ==================== MISSING STRINGS ADDED FOR FIX ==================== -->
     <string name="app_description_short">Recover your lost data in seconds</string>
+
+    <!-- ==================== SCAN RESULTS ACTIVITY ==================== -->
+    <string name="progress_loading">Loading files…</string>
+    <string name="file_type_icon">File type icon</string>
+    <string name="action_more_options">More options</string>
+    <string name="dialog_confirm_recovery_title">Confirm Recovery</string>
+    <string name="dialog_confirm_recovery_message">Recover %1$d files (%2$s)?</string>
+    <string name="recovery_complete">Recovery Complete</string>
+    <string name="recovery_complete_message">%1$d files recovered successfully</string>
+    <string name="recovery_in_progress">Recovering files…</string>
+    <string name="no_files_selected">No files selected</string>
+    <string name="all_files_selected">All files selected</string>
 </resources>

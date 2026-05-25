@@ -7,6 +7,7 @@ import com.ultimaterecovery.pro.data.repository.*
 import com.ultimaterecovery.pro.engine.root.RootManager
 import com.ultimaterecovery.pro.engine.scanner.*
 import com.ultimaterecovery.pro.manager.FileManager
+import com.ultimaterecovery.pro.utils.ai.AIRecoveryAssistant
 import com.ultimaterecovery.pro.utils.backup.BackupManager
 import com.ultimaterecovery.pro.utils.recyclebin.SmartRecycleBin
 import dagger.Module
@@ -75,6 +76,15 @@ object AppModule {
     @Singleton
     fun provideDeepScanner(): DeepScanner {
         return DeepScanner()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAIDeepScanner(
+        @ApplicationContext context: Context,
+        aiAssistant: AIRecoveryAssistant
+    ): AIDeepScanner {
+        return AIDeepScanner(context, aiAssistant)
     }
 
     @Provides

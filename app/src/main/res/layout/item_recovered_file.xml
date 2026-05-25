@@ -1,82 +1,184 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<!-- ────────────────────────────────────────────── -->
+<!-- Recovered File Item Layout                    -->
+<!-- ────────────────────────────────────────────── -->
+<!-- عنصر ملف مسترد في القائمة                     -->
+<!-- ────────────────────────────────────────────── -->
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:paddingHorizontal="@dimen/list_item_padding_horizontal"
-    android:paddingVertical="@dimen/list_item_padding_vertical"
-    android:minHeight="@dimen/list_item_height_two_line"
-    android:background="?attr/selectableItemBackground">
+    android:layout_marginHorizontal="@dimen/margin_screen_horizontal"
+    android:layout_marginVertical="@dimen/spacing_2xs"
+    app:cardCornerRadius="@dimen/card_corner_radius_small"
+    app:cardElevation="@dimen/card_elevation"
+    app:strokeWidth="0dp"
+    app:rippleColor="@color/ripple"
+    style="@style/Widget.Material3.CardView.Outlined">
 
-    <!-- File Type Icon -->
-    <ImageView
-        android:id="@+id/imageFileType"
-        android:layout_width="@dimen/file_item_thumbnail_size"
-        android:layout_height="@dimen/file_item_thumbnail_size"
-        android:src="@drawable/ic_document"
-        android:contentDescription="File type"
-        app:tint="@color/category_document"
-        android:layout_marginEnd="@dimen/list_item_icon_margin_end" />
-
-    <!-- File Info -->
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="@dimen/spacing_sm"
+        android:minHeight="@dimen/list_item_height_two_line">
 
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/textFileName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-            android:maxLines="1"
-            android:ellipsize="end"
-            tools:text="report_2025.pdf" />
+        <!-- ────────────────────────────────────── -->
+        <!-- File Thumbnail / Icon                -->
+        <!-- ────────────────────────────────────── -->
+        <FrameLayout
+            android:layout_width="@dimen/file_item_thumbnail_size"
+            android:layout_height="@dimen/file_item_thumbnail_size"
+            android:layout_marginEnd="@dimen/list_item_icon_margin_end">
 
+            <!-- Thumbnail/Icon Image -->
+            <ImageView
+                android:id="@+id/imageFileType"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_file"
+                android:background="@drawable/bg_category_icon"
+                android:padding="@dimen/spacing_sm"
+                android:contentDescription="@string/file_type_icon"
+                tools:src="@drawable/ic_photo" />
+
+            <!-- Video Play Icon Overlay -->
+            <ImageView
+                android:id="@+id/imagePlayOverlay"
+                android:layout_width="@dimen/icon_size_small"
+                android:layout_height="@dimen/icon_size_small"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_play_circle"
+                android:visibility="gone"
+                tools:visibility="visible"
+                app:tint="@color/white"
+                android:alpha="0.9" />
+
+            <!-- Selection Checkmark Overlay -->
+            <FrameLayout
+                android:id="@+id/layoutSelectionOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_selection_overlay"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <ImageView
+                    android:layout_width="@dimen/icon_size_medium"
+                    android:layout_height="@dimen/icon_size_medium"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_check"
+                    app:tint="@color/white" />
+
+            </FrameLayout>
+
+        </FrameLayout>
+
+        <!-- ────────────────────────────────────── -->
+        <!-- File Info                            -->
+        <!-- ────────────────────────────────────── -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="@dimen/spacing_2xs">
+            android:layout_weight="1"
+            android:orientation="vertical">
 
+            <!-- File Name -->
             <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/textFileSize"
+                android:id="@+id/textFileName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                android:textColor="@color/on_surface"
+                android:maxLines="2"
+                android:ellipsize="end"
+                tools:text="document_2025.pdf" />
+
+            <!-- File Details Row -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                android:textColor="@color/on_surface_variant"
-                tools:text="2.4 MB" />
+                android:orientation="horizontal"
+                android:layout_marginTop="@dimen/spacing_2xs"
+                android:gravity="center_vertical">
 
-            <com.google.android.material.textview.MaterialTextView
+                <!-- File Size -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/textFileSize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="@color/on_surface_variant"
+                    tools:text="2.4 MB" />
+
+                <!-- Separator -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="@dimen/spacing_2xs"
+                    android:text="•"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="@color/on_surface_variant" />
+
+                <!-- File Date -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/textFileDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                    android:textColor="@color/on_surface_variant"
+                    tools:text="Jan 15, 2025" />
+
+            </LinearLayout>
+
+            <!-- Category Badge (optional) -->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipCategory"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=" • "
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                android:textColor="@color/on_surface_variant" />
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/textFileDate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                android:textColor="@color/on_surface_variant"
-                tools:text="Jan 15, 2025" />
+                android:layout_marginTop="@dimen/spacing_2xs"
+                android:visibility="gone"
+                style="@style/Widget.Material3.Chip.Input"
+                app:chipMinHeight="@dimen/chip_height_small"
+                app:chipMinTouchTargetSize="0dp"
+                app:textStartPadding="@dimen/spacing_sm"
+                app:textEndPadding="@dimen/spacing_sm"
+                tools:text="PDF"
+                tools:visibility="visible" />
 
         </LinearLayout>
 
+        <!-- ────────────────────────────────────── -->
+        <!-- Checkbox                             -->
+        <!-- ────────────────────────────────────── -->
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            app:buttonTint="@color/primary"
+            android:clickable="false"
+            android:focusable="false" />
+
+        <!-- ────────────────────────────────────── -->
+        <!-- More Options Button                  -->
+        <!-- ────────────────────────────────────── -->
+        <ImageButton
+            android:id="@+id/btnMore"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_2xs"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_more_vert"
+            android:contentDescription="@string/action_more_options"
+            app:tint="@color/on_surface_variant"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
     </LinearLayout>
 
-    <!-- Checkbox -->
-    <com.google.android.material.checkbox.MaterialCheckBox
-        android:id="@+id/checkbox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/spacing_sm"
-        app:buttonTint="@color/primary" />
-
-</LinearLayout>
+</com.google.android.material.card.MaterialCardView>
