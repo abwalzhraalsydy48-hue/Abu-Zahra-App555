@@ -231,7 +231,7 @@ class AIDeepScanner @Inject constructor(
             } catch (_: Exception) {}
 
             if (regionsList.isNotEmpty()) {
-                regions[path] = regionsList.distinctBy { it.first / BUFFER_SIZE }
+                regions[path] = regionsList.distinctBy { it.first / BUFFER_SIZE }.toMutableList()
             }
         }
 
@@ -269,7 +269,7 @@ class AIDeepScanner @Inject constructor(
         promisingRegions: List<Pair<Long, Long>>,
         foundFiles: MutableList<FoundFileInfo>,
         onBytesScanned: (Long) -> Unit,
-        onProgress: (Float) -> Unit
+        onProgress: suspend (Float) -> Unit
     ) {
         val file = File(path)
         if (!file.exists() || !file.canRead()) return
@@ -689,8 +689,10 @@ class AIDeepScanner @Inject constructor(
      * ترتيب الملفات حسب الأولوية
      */
     private fun rankFilesByPriority(files: List<FoundFileInfo>): List<FoundFileInfo> {
-        return aiAssistant.modelProvider.rankByPriority(files)
-            .map { it.first }
+        return files.map { file ->
+            val priority = aiAssistant.scoreRecoveryPriority(file)
+            file to priority.score
+        }.sortedByDescending { it.second }.map { it.first }
     }
 
     /**
