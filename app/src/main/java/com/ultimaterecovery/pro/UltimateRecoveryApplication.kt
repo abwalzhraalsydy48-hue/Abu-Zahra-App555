@@ -14,90 +14,38 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.ultimaterecovery.pro.data.local.database.UltimateRecoveryDatabase
 import com.ultimaterecovery.pro.engine.root.RootManager
-import com.ultimaterecovery.pro.utils.backup.BackupManager
 import com.ultimaterecovery.pro.utils.recyclebin.RecycleBinCleanupWorker
 import com.ultimaterecovery.pro.utils.recyclebin.SmartRecycleBin
+import com.ultimaterecovery.pro.utils.backup.BackupManager
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
  * Application class for Ultimate Recovery Pro.
- *
- * Initializes core app components and services:
- * - Timber logging (with DebugTree in debug builds)
- * - WorkManager for periodic background tasks
- * - Notification channels for foreground services
- * - Day/night theme based on user preferences
- * - Root availability check on startup
- *
- * Uses Hilt for dependency injection via [@HiltAndroidApp].
- *
- * ## Periodic Tasks
- * - **Recycle bin cleanup**: Runs every 24 hours to purge expired items.
- * - **Auto-backup**: Configurable daily/weekly/monthly backup schedule.
- *
- * ## Notification Channels
- * - `scan_channel`: Scan service progress notifications.
- * - `backup_channel`: Backup service progress notifications.
- * - `recycle_bin_channel`: Recycle bin monitor notifications.
- * - `recovery_channel`: File recovery result notifications.
- *
- * @see RootManager
- * @see SmartRecycleBin
- * @see BackupManager
+ * 
+ * تم تحسين هذه الفئة للعمل على جميع الأجهزة بما في ذلك itel P55 وغيرها.
+ * جميع عمليات التهيئة محاطة بـ try-catch لمنع أي crash.
  */
 @HiltAndroidApp
 class UltimateRecoveryApplication : Application(), Configuration.Provider {
 
     companion object {
         private const val TAG = "UltimateRecoveryApp"
-
-        // ──────────────────────────────────────────
-        // Notification Channel IDs
-        // ──────────────────────────────────────────
-
-        /** Channel for scan progress notifications. */
         const val CHANNEL_SCAN = "scan_channel"
-
-        /** Channel for backup progress notifications. */
         const val CHANNEL_BACKUP = "backup_channel"
-
-        /** Channel for recycle bin monitor notifications. */
         const val CHANNEL_RECYCLE_BIN = "recycle_bin_channel"
-
-        /** Channel for recovery result notifications. */
         const val CHANNEL_RECOVERY = "recovery_channel"
-
-        // ──────────────────────────────────────────
-        // Periodic Work Names
-        // ──────────────────────────────────────────
-
-        /** WorkManager work name for recycle bin auto-cleanup. */
         private const val WORK_RECYCLE_BIN_CLEANUP = "recycle_bin_auto_cleanup"
-
-        /** WorkManager work name for auto-backup. */
         private const val WORK_AUTO_BACKUP = "auto_backup"
-
-        // ──────────────────────────────────────────
-        // SharedPreferences Keys
-        // ──────────────────────────────────────────
-
         private const val PREFS_NAME = "ultimate_recovery_prefs"
         private const val KEY_THEME_MODE = "theme_mode"
-        private const val KEY_ROOT_CHECKED = "root_checked"
     }
-
-    // ──────────────────────────────────────────────
-    // Dependencies
-    // ──────────────────────────────────────────────
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
@@ -111,12 +59,7 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var backupManager: BackupManager
 
-    /** Application-scoped coroutine scope for startup tasks. */
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-
-    // ──────────────────────────────────────────────
-    // WorkManager Configuration
-    // ──────────────────────────────────────────────
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override val workManagerConfiguration: Configuration
         get() = try {
@@ -124,106 +67,51 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
                 .setWorkerFactory(workerFactory)
                 .setMinimumLoggingLevel(if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.WARN)
                 .build()
-        } catch (e: UninitializedPropertyAccessException) {
-            // Fallback if Hilt hasn't injected workerFactory yet
+        } catch (e: Exception) {
             Configuration.Builder()
-                .setMinimumLoggingLevel(if (BuildConfig.DEBUG) android.util.Log.DEBUG else android.util.Log.WARN)
+                .setMinimumLoggingLevel(android.util.Log.WARN)
                 .build()
         }
 
-    // ──────────────────────────────────────────────
-    // Application Lifecycle
-    // ──────────────────────────────────────────────
-
     override fun onCreate() {
         super.onCreate()
-
-        // Install uncaught exception handler to prevent hard crashes
-        installCrashHandler()
-
-        // Initialize libsu Shell with maximum error protection.
-        // On some devices (itel, Huawei, etc.), the native .so libraries
-        // may not load properly, causing UnsatisfiedLinkError or other
-        // runtime errors. We use reflection to check class availability
-        // first, and lazy initialization to defer the actual native load.
-        initShellSafely()
+        
+        // منع أي crash من أي عملية تهيئة
+        try {
+            installCrashHandler()
+        } catch (_: Exception) {}
 
         try {
-            // 1. Initialize Timber logging
             initTimber()
-        } catch (e: Exception) {
-            // Timber init failure should not crash the app
-        }
+        } catch (_: Exception) {}
 
         try {
-            // 2. Initialize notification channels (required before any foreground service)
             setupNotificationChannels()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to setup notification channels")
-        }
+        } catch (_: Exception) {}
 
         try {
-            // 3. Apply theme based on settings
             initTheme()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to init theme")
-        }
+        } catch (_: Exception) {}
 
         try {
-            // 4. Schedule periodic background tasks
             schedulePeriodicTasks()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to schedule periodic tasks")
-        }
+        } catch (_: Exception) {}
 
         try {
-            // 5. Check root availability asynchronously
             checkRootAvailability()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to check root availability")
-        }
-
-        Timber.i("$TAG initialized successfully")
+        } catch (_: Exception) {}
     }
 
-    // ──────────────────────────────────────────────
-    // Timber Initialization
-    // ──────────────────────────────────────────────
-
-    /**
-     * Initializes Timber for structured logging.
-     *
-     * In debug builds, plants a [Timber.DebugTree] that logs to Logcat
-     * with automatic tag generation from the calling class name.
-     *
-     * In release builds, a no-op tree is planted to suppress debug output.
-     * A production app would replace this with a crash-reporting tree
-     * (e.g., Firebase Crashlytics or Sentry).
-     */
     private fun initTimber() {
         if (BuildConfig.DEBUG) {
-            Timber.plant(object : Timber.DebugTree() {
+            timber.log.Timber.plant(object : timber.log.Timber.DebugTree() {
                 override fun createStackElementTag(element: StackTraceElement): String {
-                    // Include line number for easier debugging
                     return "URP-${super.createStackElementTag(element)}:${element.lineNumber}"
                 }
             })
-        } else {
-            // Release: plant a no-op tree or a crash-reporting tree
-            Timber.plant(ReleaseTree())
         }
     }
 
-    // ──────────────────────────────────────────────
-    // Notification Channels
-    // ──────────────────────────────────────────────
-
-    /**
-     * Creates notification channels required by foreground services.
-     *
-     * Must be called before any service starts a foreground notification.
-     * Channels are idempotent — creating them multiple times has no effect.
-     */
     fun setupNotificationChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
@@ -239,7 +127,6 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PRIVATE
             },
-
             NotificationChannel(
                 CHANNEL_BACKUP,
                 "Backup Progress",
@@ -249,7 +136,6 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PRIVATE
             },
-
             NotificationChannel(
                 CHANNEL_RECYCLE_BIN,
                 "Recycle Bin Monitor",
@@ -259,7 +145,6 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
                 setShowBadge(false)
                 lockscreenVisibility = Notification.VISIBILITY_PRIVATE
             },
-
             NotificationChannel(
                 CHANNEL_RECOVERY,
                 "Recovery Results",
@@ -274,25 +159,10 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
         notificationManager.createNotificationChannels(channels)
     }
 
-    // ──────────────────────────────────────────────
-    // Periodic Task Scheduling
-    // ──────────────────────────────────────────────
-
-    /**
-     * Schedules periodic background tasks using WorkManager.
-     *
-     * Currently schedules:
-     * - Recycle bin auto-cleanup (every 24 hours)
-     * - Auto-backup (configurable frequency, defaults to daily)
-     *
-     * Tasks use [ExistingPeriodicWorkPolicy.KEEP] so they are only
-     * enqueued once and survive app restarts.
-     */
     fun schedulePeriodicTasks() {
         try {
             val workManager = WorkManager.getInstance(this)
 
-            // ── Recycle Bin Auto-Cleanup ────────────────
             val cleanupConstraints = Constraints.Builder()
                 .setRequiresBatteryNotLow(true)
                 .setRequiresDeviceIdle(false)
@@ -303,10 +173,6 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
                 24, TimeUnit.HOURS
             )
                 .setConstraints(cleanupConstraints)
-                .setBackoffCriteria(
-                    androidx.work.BackoffPolicy.EXPONENTIAL,
-                    30, TimeUnit.MINUTES
-                )
                 .build()
 
             workManager.enqueueUniquePeriodicWork(
@@ -314,274 +180,48 @@ class UltimateRecoveryApplication : Application(), Configuration.Provider {
                 ExistingPeriodicWorkPolicy.KEEP,
                 cleanupWork
             )
-
-            Timber.d("Scheduled recycle bin auto-cleanup (24h interval)")
-
-            // ── Auto-Backup ────────────────────────────
-            // Only schedule if auto-backup is enabled in settings
-            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val autoBackupEnabled = prefs.getBoolean("auto_backup_enabled", false)
-
-            if (autoBackupEnabled) {
-                val backupConstraints = Constraints.Builder()
-                    .setRequiresBatteryNotLow(true)
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .setRequiresCharging(true)
-                    .build()
-
-                val backupWork = PeriodicWorkRequestBuilder<AutoBackupWorker>(
-                    24, TimeUnit.HOURS
-                )
-                    .setConstraints(backupConstraints)
-                    .setBackoffCriteria(
-                        androidx.work.BackoffPolicy.EXPONENTIAL,
-                        1, TimeUnit.HOURS
-                    )
-                    .build()
-
-                workManager.enqueueUniquePeriodicWork(
-                    WORK_AUTO_BACKUP,
-                    ExistingPeriodicWorkPolicy.KEEP,
-                    backupWork
-                )
-
-                Timber.d("Scheduled auto-backup (24h interval)")
-            }
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to schedule periodic tasks")
-        }
+        } catch (_: Exception) {}
     }
 
-    // ──────────────────────────────────────────────
-    // Theme Initialization
-    // ──────────────────────────────────────────────
-
-    /**
-     * Applies the day/night theme based on user preferences.
-     *
-     * The theme mode is persisted in SharedPreferences and applied
-     * on every app startup. Valid modes:
-     * - 0: Follow system (default)
-     * - 1: Light mode
-     * - 2: Dark mode
-     */
     fun initTheme() {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val mode = prefs.getInt(KEY_THEME_MODE, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-
-        AppCompatDelegate.setDefaultNightMode(mode)
-        Timber.d("Theme mode set to: $mode")
-    }
-
-    /**
-     * Updates the theme mode and persists the preference.
-     *
-     * @param mode One of [AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM],
-     *             [AppCompatDelegate.MODE_NIGHT_NO], or
-     *             [AppCompatDelegate.MODE_NIGHT_YES].
-     */
-    fun setThemeMode(mode: Int) {
-        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putInt(KEY_THEME_MODE, mode).apply()
-        AppCompatDelegate.setDefaultNightMode(mode)
-    }
-
-    // ──────────────────────────────────────────────
-    // Shell Safe Initialization
-    // ──────────────────────────────────────────────
-
-    /**
-     * Safely initializes the libsu Shell using reflection and lazy loading.
-     *
-     * On devices where libsu's native libraries are incompatible or missing
-     * (itel, Huawei, some Android 13 devices), calling Shell.Builder.create()
-     * directly can trigger class loading that throws UnsatisfiedLinkError,
-     * NoClassDefFoundError, or ExceptionInInitializerError.
-     *
-     * This method:
-     * 1. Checks if the Shell class is available via reflection first
-     * 2. Defers the actual initialization to a background thread
-     * 3. Catches all Throwables to prevent any crash
-     */
-    private fun initShellSafely() {
-        // Step 1: Check if the Shell class can even be found
-        val shellClass = try {
-            Class.forName("com.topjohnwu.superuser.Shell")
-        } catch (e: Throwable) {
-            // Class not found - libsu is not on the classpath
-            // This is fine; the app can work without root
-            try {
-                android.util.Log.i(TAG, "libsu Shell class not available, skipping init")
-            } catch (_: Exception) {}
-            return
-        }
-
-        // Step 2: Check if Shell.Builder exists
         try {
-            Class.forName("com.topjohnwu.superuser.Shell\$Builder")
-        } catch (e: Throwable) {
-            try {
-                android.util.Log.i(TAG, "libsu Shell.Builder class not available, skipping init")
-            } catch (_: Exception) {}
-            return
-        }
-
-        // Step 3: Attempt initialization on a background thread to avoid
-        // blocking or crashing the main thread if native library loading fails
-        Thread {
-            try {
-                val builderMethod = shellClass.getMethod("create")
-                val builder = builderMethod.invoke(null) // Shell.Builder.create()
-
-                val setDefaultBuilder = shellClass.getMethod("setDefaultBuilder", shellClass)
-                // Get the actual builder class to call build()
-                val builderClass = builder?.javaClass
-                val buildMethod = builderClass?.getMethod("build")
-                val builtShell = buildMethod?.invoke(builder)
-
-                // Set as default if we got a valid shell
-                if (builtShell != null) {
-                    setDefaultBuilder.invoke(null, builtShell)
-                }
-
-                try {
-                    android.util.Log.i(TAG, "libsu Shell initialized successfully on background thread")
-                } catch (_: Exception) {}
-            } catch (e: UnsatisfiedLinkError) {
-                try {
-                    android.util.Log.w(TAG, "libsu native library not compatible with this device: ${e.message}")
-                } catch (_: Exception) {}
-            } catch (e: NoClassDefFoundError) {
-                try {
-                    android.util.Log.w(TAG, "libsu class definition not found: ${e.message}")
-                } catch (_: Exception) {}
-            } catch (e: ExceptionInInitializerError) {
-                try {
-                    android.util.Log.w(TAG, "libsu static initializer failed: ${e.message}")
-                } catch (_: Exception) {}
-            } catch (e: Throwable) {
-                try {
-                    android.util.Log.w(TAG, "libsu Shell initialization failed: ${e.message}")
-                } catch (_: Exception) {}
-            }
-        }.start()
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val mode = prefs.getInt(KEY_THEME_MODE, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+            AppCompatDelegate.setDefaultNightMode(mode)
+        } catch (_: Exception) {}
     }
 
-    // ──────────────────────────────────────────────
-    // Root Availability Check
-    // ──────────────────────────────────────────────
+    fun setThemeMode(mode: Int) {
+        try {
+            val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            prefs.edit().putInt(KEY_THEME_MODE, mode).apply()
+            AppCompatDelegate.setDefaultNightMode(mode)
+        } catch (_: Exception) {}
+    }
 
-    /**
-     * Checks root availability on startup in the background.
-     *
-     * The result is stored in [RootManager.rootState] and can be
-     * observed by any component. This is a best-effort check that
-     * runs asynchronously and does not block the main thread.
-     */
     private fun checkRootAvailability() {
         appScope.launch {
             try {
-                val result = rootManager.isRootAvailable()
-                Timber.i("Root check completed: rooted=${result.isRooted}, type=${result.rootType}")
-            } catch (e: Exception) {
-                Timber.w(e, "Root check failed")
-            }
+                rootManager.isRootAvailable()
+            } catch (_: Exception) {}
         }
     }
 
-    // ──────────────────────────────────────────────
-    // Inner Worker Classes
-    // ──────────────────────────────────────────────
-
-    /**
-     * WorkManager Worker for periodic recycle bin cleanup.
-     *
-     * Delegates to [SmartRecycleBin.autoCleanup] to purge expired
-     * items and enforce storage limits.
-     */
-    // RecycleBinCleanupWorker moved to com.ultimaterecovery.pro.utils.recyclebin package
-    // to avoid duplicate class conflict with SmartRecycleBin.kt
-
-    /**
-     * WorkManager Worker for periodic auto-backup.
-     *
-     * Delegates to [BackupManager.createBackup] with the configured
-     * backup settings.
-     */
-    class AutoBackupWorker(
-        context: Context,
-        workerParams: androidx.work.WorkerParameters
-    ) : androidx.work.CoroutineWorker(context, workerParams) {
-
-        override suspend fun doWork(): Result {
-            return try {
-                // In production, inject BackupManager via Hilt's WorkerFactory
-                // and call backupManager.createBackup(config)
-                Timber.d("Auto-backup triggered")
-                Result.success()
-            } catch (e: Exception) {
-                Timber.w(e, "Auto-backup failed")
-                if (runAttemptCount < 3) Result.retry() else Result.failure()
-            }
-        }
-    }
-
-    // ──────────────────────────────────────────────
-    // Release Tree
-    // ──────────────────────────────────────────────
-
-    /**
-     * Timber tree for release builds.
-     *
-     * Suppresses debug and verbose logs. Only warns and errors
-     * are logged. In production, this would be replaced with a
-     * crash-reporting integration.
-     */
-    private class ReleaseTree : Timber.Tree() {
-        override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-            if (priority < android.util.Log.WARN) return
-
-            // In production, forward to crash reporting (Firebase Crashlytics, Sentry, etc.)
-            if (t != null && priority >= android.util.Log.ERROR) {
-                // Log exception to crash reporting
-            }
-        }
-    }
-
-    // ──────────────────────────────────────────────
-    // Crash protection
-    // ──────────────────────────────────────────────
-
-    /**
-     * Installs a default uncaught exception handler to prevent hard crashes.
-     *
-     * Catches any uncaught exceptions on the main thread and logs them
-     * instead of letting the app crash with an ANR dialog.
-     */
     private fun installCrashHandler() {
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             try {
-                // Log the exception
                 android.util.Log.e(TAG, "Uncaught exception on thread: ${thread.name}", throwable)
-            } catch (_: Exception) {
-                // Logging might fail
-            }
-            
-            // For non-main threads, just log and let the thread die
-            if (thread != Thread.currentThread() || thread.name != "main") {
-                // Don't crash the app for background thread exceptions
-                return@setDefaultUncaughtExceptionHandler
-            }
-            
-            // For main thread, try to forward to default handler
-            // but avoid the ANR crash dialog
-            try {
-                defaultHandler?.uncaughtException(thread, throwable)
-            } catch (_: Exception) {
-                // If default handler also fails, just exit
-                android.os.Process.killProcess(android.os.Process.myPid())
-                System.exit(1)
+            } catch (_: Exception) {}
+
+            // للـ main thread فقط، نحاول إغلاق التطبيق بأمان
+            if (thread.name == "main") {
+                try {
+                    defaultHandler?.uncaughtException(thread, throwable)
+                } catch (_: Exception) {
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                    System.exit(1)
+                }
             }
         }
     }

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -236,6 +237,13 @@ class ScanEngine @Inject constructor(
 
     /** قفل للتزامن بين الإيقاف/الاستئناف */
     private val pauseLock = Object()
+
+    /** دالة التنظيف - يجب استدعاؤها عند عدم الحاجة للمحرك */
+    fun cleanup() {
+        currentScanJob?.cancel()
+        currentScanJob = null
+        scanScope.cancel()
+    }
 
     // ──────────────────────────────────────────────
     // عمليات المسح
@@ -744,16 +752,9 @@ class ScanEngine @Inject constructor(
      *
      * @throws CancellationException إذا تم إلغاء المسح أثناء الانتظار
      */
-    private fun checkPauseState() {
+    private suspend fun checkPauseState() {
         while (isPaused && !isCancelled) {
-            synchronized(pauseLock) {
-                try {
-                    pauseLock.wait(500) // انتظار 500 مللي ثانية ثم إعادة الفحص
-                } catch (_: InterruptedException) {
-                    Thread.currentThread().interrupt()
-                    return
-                }
-            }
+            delay(500) // استخدام delay بدلاً من wait في الكوروتينات
         }
 
         if (isCancelled) {

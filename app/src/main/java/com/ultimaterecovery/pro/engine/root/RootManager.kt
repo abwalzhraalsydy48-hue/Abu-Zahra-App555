@@ -192,8 +192,8 @@ class RootManager @Inject constructor(
         }
 
     suspend fun fileExistsAsRoot(path: String): Boolean = withContext(Dispatchers.IO) {
-        executeCommand("test -e '$path' && echo EXISTS").let { false }
-            .also { File(path).exists() }
+        val result = executeCommandWithOutput("test -e '$path' && echo EXISTS")
+        result.success && result.stdout.contains("EXISTS")
     }
 
     suspend fun getFilePermissions(path: String): String? = withContext(Dispatchers.IO) {

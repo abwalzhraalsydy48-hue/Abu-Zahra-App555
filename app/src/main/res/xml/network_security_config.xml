@@ -17,10 +17,7 @@
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
-        <pin-set>
-            <pin digest="SHA-256">REPLACE_WITH_ACTUAL_PIN_HASH_1</pin>
-            <pin digest="SHA-256">REPLACE_WITH_ACTUAL_PIN_HASH_2</pin>
-        </pin-set>
+        <!-- Certificate pinning disabled until actual pins are configured -->
     </domain-config>
 
     <!-- Google Cloud Storage for backup -->

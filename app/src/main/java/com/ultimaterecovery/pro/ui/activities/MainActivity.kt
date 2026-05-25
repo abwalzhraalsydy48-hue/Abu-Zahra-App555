@@ -341,14 +341,14 @@ class MainActivity : AppCompatActivity() {
                 }
                 is MainNavigationEvent.NavigateToDeepScan -> {
                     val intent = Intent(this, ScanActivity::class.java).apply {
-                    putExtra(ScanActivity.EXTRA_SCAN_TYPE, "DEEP")
+                        putExtra(ScanActivity.EXTRA_SCAN_TYPE, "DEEP")
+                    }
+                    startActivity(intent)
                 }
-                startActivity(intent)
+                is MainNavigationEvent.ShowMessage -> {
+                    Snackbar.make(binding.root, event.message, Snackbar.LENGTH_SHORT).show()
+                }
             }
-            is MainNavigationEvent.ShowMessage -> {
-                Snackbar.make(binding.root, event.message, Snackbar.LENGTH_SHORT).show()
-            }
-        }
         } catch (e: Exception) {
             // Navigation event handling failure should not crash
         }
