@@ -913,4 +913,18 @@
     <string name="recovery_in_progress">Recovering files…</string>
     <string name="no_files_selected">No files selected</string>
     <string name="all_files_selected">All files selected</string>
+
+    <!-- ==================== HOME FRAGMENT STRINGS ==================== -->
+    <string name="storage_usage">Storage Usage</string>
+    <string name="used">Used</string>
+    <string name="available">Available</string>
+    <string name="recovery_stats">Recovery Statistics</string>
+    <string name="recovered_files">Recovered Files</string>
+    <string name="last_scan">Last Scan</string>
+    <string name="categories">Categories</string>
+    <string name="photos">Photos</string>
+    <string name="videos">Videos</string>
+    <string name="documents">Documents</string>
+    <string name="audio">Audio</string>
+    <string name="quick_scan">Quick Scan</string>
 </resources>

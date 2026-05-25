@@ -37,40 +37,26 @@ jobs:
     - name: Create local.properties
       run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace --no-daemon --build-cache
-
     - name: Build Release APK
       run: ./gradlew assembleRelease --stacktrace --no-daemon --build-cache
-      continue-on-error: true
 
     - name: List APK files
       run: |
         echo "=== Finding APK files ==="
         find . -name "*.apk" -type f 2>/dev/null
-        echo "=== Debug APK ==="
-        ls -la app/build/outputs/apk/debug/ 2>/dev/null || echo "No debug APK"
         echo "=== Release APK ==="
         ls -la app/build/outputs/apk/release/ 2>/dev/null || echo "No release APK"
-
-    - name: Upload Debug APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-debug-apk
-        path: app/build/outputs/apk/debug/*.apk
-        if-no-files-found: warn
 
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-release-apk
+        name: ultimate-recovery-pro-apk
         path: app/build/outputs/apk/release/*.apk
-        if-no-files-found: warn
+        if-no-files-found: error
 
     - name: Push APK to repo
       run: |
         mkdir -p release
-        cp app/build/outputs/apk/debug/*.apk release/ 2>/dev/null || true
         cp app/build/outputs/apk/release/*.apk release/ 2>/dev/null || true
 
         git config --local user.email "action@github.com"
@@ -83,6 +69,6 @@ jobs:
         if git diff --staged --quiet; then
           echo "No APK files to commit"
         else
-          git commit -m "Build APK - $(date +%Y%m%d-%H%M%S)"
+          git commit -m "Build Release APK - $(date +%Y%m%d-%H%M%S)"
           git push
         fi

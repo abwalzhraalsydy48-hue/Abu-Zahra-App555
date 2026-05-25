@@ -10,6 +10,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import com.ultimaterecovery.pro.R
 import com.ultimaterecovery.pro.data.local.entity.RecoveredFileEntity.FileCategory
 import com.ultimaterecovery.pro.data.local.entity.ScanSessionEntity.ScanType
@@ -39,22 +40,10 @@ import java.util.Date
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
 
-    // ──────────────────────────────────────────
-    // ViewBinding
-    // ──────────────────────────────────────────
-
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    // ──────────────────────────────────────────
-    // ViewModel
-    // ──────────────────────────────────────────
-
     private val viewModel: MainViewModel by viewModels()
-
-    // ──────────────────────────────────────────
-    // Lifecycle
-    // ──────────────────────────────────────────
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -77,11 +66,8 @@ class HomeFragment : Fragment() {
         _binding = null
     }
 
-    // ──────────────────────────────────────────
-    // Quick action cards
-    // ──────────────────────────────────────────
-
     private fun setupQuickActions() {
+        // Quick Scan - opens ScanActivity
         binding.cardQuickScan.setOnClickListener {
             val intent = Intent(requireContext(), ScanActivity::class.java).apply {
                 putExtra(ScanActivity.EXTRA_SCAN_TYPE, ScanType.QUICK.name)
@@ -89,36 +75,75 @@ class HomeFragment : Fragment() {
             startActivity(intent)
         }
 
+        // Photo Recovery - navigates to PhotoRecoveryFragment
         binding.cardPhotoRecovery.setOnClickListener {
-            viewModel.navigateToRecovery(FileCategory.PHOTO)
+            try {
+                findNavController().navigate(R.id.action_homeFragment_to_photoRecoveryFragment)
+            } catch (e: Exception) {
+                // Fallback to ScanActivity with photo type
+                val intent = Intent(requireContext(), ScanActivity::class.java).apply {
+                    putExtra(ScanActivity.EXTRA_SCAN_TYPE, "PHOTO")
+                }
+                startActivity(intent)
+            }
         }
 
+        // Video Recovery - navigates to VideoRecoveryFragment
         binding.cardVideoRecovery.setOnClickListener {
-            viewModel.navigateToRecovery(FileCategory.VIDEO)
+            try {
+                findNavController().navigate(R.id.action_homeFragment_to_videoRecoveryFragment)
+            } catch (e: Exception) {
+                val intent = Intent(requireContext(), ScanActivity::class.java).apply {
+                    putExtra(ScanActivity.EXTRA_SCAN_TYPE, "VIDEO")
+                }
+                startActivity(intent)
+            }
         }
 
+        // File Recovery - navigates to FileRecoveryFragment
         binding.cardFileRecovery.setOnClickListener {
-            viewModel.navigateToRecovery(FileCategory.DOCUMENT)
+            try {
+                findNavController().navigate(R.id.action_homeFragment_to_fileRecoveryFragment)
+            } catch (e: Exception) {
+                val intent = Intent(requireContext(), ScanActivity::class.java).apply {
+                    putExtra(ScanActivity.EXTRA_SCAN_TYPE, "DOCUMENT")
+                }
+                startActivity(intent)
+            }
         }
 
+        // SMS Recovery - navigates to SmsRecoveryFragment
         binding.cardSmsRecovery.setOnClickListener {
-            // Navigate to SMS recovery fragment
-            viewModel.navigateToRecovery(FileCategory.OTHER)
+            try {
+                findNavController().navigate(R.id.action_homeFragment_to_smsRecoveryFragment)
+            } catch (e: Exception) {
+                val intent = Intent(requireContext(), ScanActivity::class.java).apply {
+                    putExtra(ScanActivity.EXTRA_SCAN_TYPE, "SMS")
+                }
+                startActivity(intent)
+            }
         }
 
+        // Call Log Recovery - navigates to CallLogRecoveryFragment
         binding.cardCallLogRecovery.setOnClickListener {
-            // Navigate to call log recovery fragment
-            viewModel.navigateToRecovery(FileCategory.OTHER)
+            try {
+                findNavController().navigate(R.id.action_homeFragment_to_callLogRecoveryFragment)
+            } catch (e: Exception) {
+                val intent = Intent(requireContext(), ScanActivity::class.java).apply {
+                    putExtra(ScanActivity.EXTRA_SCAN_TYPE, "CALL_LOG")
+                }
+                startActivity(intent)
+            }
         }
 
+        // Deep Scan - navigates to ScanFragment with deep scan mode
         binding.cardDeepScan.setOnClickListener {
-            viewModel.startDeepScan()
+            val intent = Intent(requireContext(), ScanActivity::class.java).apply {
+                putExtra(ScanActivity.EXTRA_SCAN_TYPE, ScanType.DEEP.name)
+            }
+            startActivity(intent)
         }
     }
-
-    // ──────────────────────────────────────────
-    // Swipe refresh
-    // ──────────────────────────────────────────
 
     private fun setupSwipeRefresh() {
         binding.swipeRefresh.setOnRefreshListener {
@@ -127,10 +152,6 @@ class HomeFragment : Fragment() {
             viewModel.checkRootStatus()
         }
     }
-
-    // ──────────────────────────────────────────
-    // UI State observation
-    // ──────────────────────────────────────────
 
     private fun observeUiState() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -189,10 +210,6 @@ class HomeFragment : Fragment() {
         }
     }
 
-    // ──────────────────────────────────────────
-    // Storage usage rendering
-    // ──────────────────────────────────────────
-
     private fun renderStorageUsage(storageInfo: List<StorageInfo>) {
         if (storageInfo.isEmpty()) {
             binding.cardStorageUsage?.visibility = View.GONE
@@ -227,20 +244,12 @@ class HomeFragment : Fragment() {
         }
     }
 
-    // ──────────────────────────────────────────
-    // Category counts rendering
-    // ──────────────────────────────────────────
-
     private fun renderCategoryCounts(counts: Map<FileCategory, Int>) {
         binding.tvPhotoCount.text = (counts[FileCategory.PHOTO] ?: 0).toString()
         binding.tvVideoCount.text = (counts[FileCategory.VIDEO] ?: 0).toString()
         binding.tvDocumentCount.text = (counts[FileCategory.DOCUMENT] ?: 0).toString()
         binding.tvAudioCount.text = (counts[FileCategory.AUDIO] ?: 0).toString()
     }
-
-    // ──────────────────────────────────────────
-    // Root banner rendering
-    // ──────────────────────────────────────────
 
     private fun renderRootBanner(rootState: RootState, isRootAvailable: Boolean) {
         when (rootState) {
@@ -270,10 +279,6 @@ class HomeFragment : Fragment() {
             }
         }
     }
-
-    // ──────────────────────────────────────────
-    // Helpers
-    // ──────────────────────────────────────────
 
     private fun formatFileSize(bytes: Long): String {
         if (bytes < 1024) return "$bytes B"
