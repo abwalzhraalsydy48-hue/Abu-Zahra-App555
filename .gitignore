@@ -172,7 +172,9 @@ replay_pid*
 secrets.properties
 api_keys.properties
 *.keystore
-*.jks
+# Allow keystore.jks for release signing
+!keystore.jks
+!*.jks
 
 # ============================================================================
 # Backup files
