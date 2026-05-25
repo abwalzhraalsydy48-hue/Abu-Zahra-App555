@@ -28,24 +28,20 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
+      with:
+        cache-read-only: false
 
-    - name: Verify gradle wrapper
-      run: |
-        chmod +x gradlew
-        ls -la gradle/wrapper/
-        if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-          echo "ERROR: gradle-wrapper.jar is missing!"
-          exit 1
-        fi
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
 
     - name: Create local.properties
       run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace --no-daemon
+      run: ./gradlew assembleDebug --stacktrace --no-daemon --build-cache
 
     - name: Build Release APK
-      run: ./gradlew assembleRelease --stacktrace --no-daemon
+      run: ./gradlew assembleRelease --stacktrace --no-daemon --build-cache
       continue-on-error: true
 
     - name: List APK files
