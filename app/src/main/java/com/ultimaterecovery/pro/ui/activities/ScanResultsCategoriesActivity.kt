@@ -47,10 +47,10 @@ class ScanResultsCategoriesActivity : AppCompatActivity() {
             openCategoryDetails(FileCategory.VIDEO, getString(R.string.scan_type_videos))
         }
         binding.cardSms.setOnClickListener {
-            openCategoryDetails(FileCategory.SMS, getString(R.string.scan_type_sms))
+            openCategoryDetails(FileCategory.OTHER, getString(R.string.scan_type_sms))
         }
         binding.cardCallLogs.setOnClickListener {
-            openCategoryDetails(FileCategory.CALL_LOG, getString(R.string.scan_type_call_log))
+            openCategoryDetails(FileCategory.OTHER, getString(R.string.scan_type_call_log))
         }
         binding.cardDocuments.setOnClickListener {
             openCategoryDetails(FileCategory.DOCUMENT, getString(R.string.scan_type_documents))
