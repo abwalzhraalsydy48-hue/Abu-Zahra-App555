@@ -927,4 +927,29 @@
     <string name="documents">Documents</string>
     <string name="audio">Audio</string>
     <string name="quick_scan">Quick Scan</string>
+
+    <!-- ==================== SCAN RESULTS ACTIVITIES ==================== -->
+    <string name="scan_results_title">Scan Results</string>
+    <string name="recoverable_files_found">recoverable files found</string>
+    <string name="select_category_to_view">Select a category to view files</string>
+    <string name="files_count">%1$d files</string>
+    <string name="no_files">No files</string>
+    <string name="action_recover_all">Recover All</string>
+    <string name="action_export_all">Export All</string>
+    <string name="action_new_scan">New Scan</string>
+    <string name="action_recover_selected">Recover Selected</string>
+    <string name="selected_count">%1$d selected</string>
+    <string name="no_files_found">No files found</string>
+    <string name="files">%1$d files</string>
+    <string name="recovery_failed">Recovery failed</string>
+    <string name="export_failed">Export failed</string>
+    <string name="scan_type_contacts">Contacts</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="ok">OK</string>
+    <string name="progress_percent">%1$d%%</string>
+    <string name="files_found">%1$d files found</string>
+    <string name="cancel_scan_title">Cancel Scan?</string>
+    <string name="cancel_scan_message">Are you sure you want to cancel the current scan? Found files will be saved.</string>
+    <string name="scan_failed">Scan Failed</string>
 </resources>

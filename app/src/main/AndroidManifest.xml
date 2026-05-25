@@ -192,6 +192,20 @@
             android:parentActivityName=".ui.activities.ScanActivity"
             android:screenOrientation="portrait" />
 
+        <!-- Scan Results Categories Activity -->
+        <activity
+            android:name=".ui.activities.ScanResultsCategoriesActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.ScanActivity"
+            android:screenOrientation="portrait" />
+
+        <!-- Category Files Activity -->
+        <activity
+            android:name=".ui.activities.CategoryFilesActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.activities.ScanResultsCategoriesActivity"
+            android:screenOrientation="portrait" />
+
         <activity
             android:name=".ui.about.AboutActivity"
             android:exported="false"

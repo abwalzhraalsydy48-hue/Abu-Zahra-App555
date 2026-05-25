@@ -37,7 +37,7 @@ jobs:
     - name: Create local.properties
       run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-    - name: Build Release APK
+    - name: Build Release APK (Signed)
       run: ./gradlew assembleRelease --stacktrace --no-daemon --build-cache
 
     - name: List APK files
@@ -50,7 +50,7 @@ jobs:
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
-        name: ultimate-recovery-pro-apk
+        name: ultimate-recovery-pro-signed-apk
         path: app/build/outputs/apk/release/*.apk
         if-no-files-found: error
 
@@ -62,13 +62,13 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-        # Force add APK files (they might be in .gitignore)
+        # Force add APK files
         git add -f release/*.apk 2>/dev/null || true
 
         # Check if there are changes to commit
         if git diff --staged --quiet; then
           echo "No APK files to commit"
         else
-          git commit -m "Build Release APK - $(date +%Y%m%d-%H%M%S)"
+          git commit -m "Build Signed Release APK - $(date +%Y%m%d-%H%M%S)"
           git push
         fi
