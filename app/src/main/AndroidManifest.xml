@@ -72,18 +72,26 @@
         android:requestLegacyExternalStorage="true"
         tools:targetApi="34">
 
-        <!-- Main Entry Point -->
+        <!-- Splash Screen (Launcher) -->
         <activity
-            android:name=".ui.activities.MainActivity"
+            android:name=".ui.activities.SplashActivity"
             android:exported="true"
-            android:launchMode="singleTop"
-            android:windowSoftInputMode="adjustResize"
-            android:screenOrientation="portrait">
+            android:theme="@style/Theme.UltimateRecoveryPro.Splash"
+            android:screenOrientation="portrait"
+            android:noHistory="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Main Entry Point -->
+        <activity
+            android:name=".ui.activities.MainActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait" />
 
         <!-- Scan Activity -->
         <activity

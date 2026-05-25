@@ -22,7 +22,7 @@
             android:paddingEnd="@dimen/toolbar_content_padding"
             app:title="@string/app_name"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
-            app:menu="@menu/menu_main_toolbar">
+            app:menu="@menu/menu_toolbar">
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipRootStatus"
