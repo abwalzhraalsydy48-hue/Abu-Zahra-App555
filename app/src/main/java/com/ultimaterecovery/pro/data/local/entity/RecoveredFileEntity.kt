@@ -128,6 +128,8 @@ data class RecoveredFileEntity(
         AUDIO,
         ARCHIVE,
         APK,
+        SMS,
+        CALL_LOG,
         OTHER
     }
 
