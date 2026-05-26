@@ -90,6 +90,15 @@ class DeepScanner @Inject constructor() {
             val scanPaths = if (paths.isEmpty()) getDefaultDeepScanPaths() else paths
 
             for ((pathIndex, scanPath) in scanPaths.withIndex()) {
+                if (!currentCoroutineContext().isActive) break
+
+                val file = File(scanPath)
+
+                // التحقق من إمكانية الوصول
+                if (!file.exists()) {
+                    continue
+                }
+
                 // إذا كان دليلاً، نفحص الملفات داخله بشكل متكرر
                 if (file.isDirectory) {
                     emit(ScanState.Scanning(
@@ -106,17 +115,9 @@ class DeepScanner @Inject constructor() {
                     continue
                 }
 
-                if (!currentCoroutineContext().isActive) break
-
-                val file = File(scanPath)
-
-                // التحقق من إمكانية الوصول
-                if (!file.exists()) {
-                    continue
-                }
-
                 // حساب الحجم الإجمالي
                 totalSize += file.length()
+
 
                 emit(ScanState.Scanning(
                     progress = if (totalSize > 0) totalBytesScanned.toFloat() / totalSize else 0f,
