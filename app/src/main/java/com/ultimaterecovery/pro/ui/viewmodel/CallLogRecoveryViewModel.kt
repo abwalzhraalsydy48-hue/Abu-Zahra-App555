@@ -416,6 +416,13 @@ class CallLogRecoveryViewModel @Inject constructor(
     // Error
     // ──────────────────────────────────────────
 
+    /**
+     * Filters call logs by type (convenience method).
+     */
+    fun filterByType(type: com.ultimaterecovery.pro.data.local.entity.CallLogEntity.CallType?) {
+        filterCallLogs(_uiState.value.currentFilter.copy(callType = type))
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }

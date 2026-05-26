@@ -90,6 +90,22 @@ class DeepScanner @Inject constructor() {
             val scanPaths = if (paths.isEmpty()) getDefaultDeepScanPaths() else paths
 
             for ((pathIndex, scanPath) in scanPaths.withIndex()) {
+                // إذا كان دليلاً، نفحص الملفات داخله بشكل متكرر
+                if (file.isDirectory) {
+                    emit(ScanState.Scanning(
+                        progress = if (totalSize > 0) totalBytesScanned.toFloat() / totalSize else 0f,
+                        currentPath = "مسح المجلد: $scanPath",
+                        filesFound = foundFiles.size,
+                        bytesScanned = totalBytesScanned,
+                        totalBytes = totalSize,
+                        scanType = ScanType.DEEP
+                    ))
+                    scanDirectoryRecursively(file, targetCategories, foundFiles) { bytesRead ->
+                        totalBytesScanned += bytesRead
+                    }
+                    continue
+                }
+
                 if (!currentCoroutineContext().isActive) break
 
                 val file = File(scanPath)
@@ -794,5 +810,68 @@ class DeepScanner @Inject constructor() {
             if (b.toInt() != 0) nonZeroCount++
         }
         return nonZeroCount > 10
+    }
+}
+
+    /**
+     * مسح الدلائل بشكل متكرر للبحث عن الملفات المحذوفة
+     *
+     * يستخدم هذه الدالة عندما يكون المسار دليلاً وليس ملفاً خاماً
+     */
+    private suspend fun scanDirectoryRecursively(
+        directory: File,
+        categories: List<FileCategory>,
+        foundFiles: MutableList<FoundFileInfo>,
+        onBytesScanned: (Long) -> Unit
+    ) {
+        if (!directory.exists() || !directory.isDirectory || !directory.canRead()) return
+        
+        try {
+            directory.listFiles()?.forEach { file ->
+                if (!currentCoroutineContext().isActive) return
+                
+                try {
+                    if (file.isDirectory) {
+                        // مسح متكرر للدلائل الفرعية
+                        scanDirectoryRecursively(file, categories, foundFiles, onBytesScanned)
+                    } else if (file.isFile && file.canRead()) {
+                        // فحص الملف للبحث عن محتوى محذوف
+                        onBytesScanned(file.length())
+                        
+                        // محاولة قراءة رأس الملف للتعرف عليه
+                        if (file.length() >= MIN_RECOVERABLE_FILE_SIZE) {
+                            try {
+                                RandomAccessFile(file, "r").use { raf ->
+                                    val header = ByteArray(minOf(512L, file.length()).toInt())
+                                    raf.read(header)
+                                    
+                                    val signature = FileSignatures.identifyFileType(header)
+                                    if (signature != null && signature.category in categories) {
+                                        val fileInfo = FoundFileInfo(
+                                            path = file.absolutePath,
+                                            fileName = file.name,
+                                            fileSize = file.length(),
+                                            extension = file.extension.lowercase(),
+                                            mimeType = signature.mimeType,
+                                            category = signature.category,
+                                            signatureName = signature.name,
+                                            confidence = RecoveryConfidence.MEDIUM,
+                                            lastModified = file.lastModified(),
+                                            isRootRequired = false,
+                                            sourcePath = file.absolutePath,
+                                            metadata = mapOf(
+                                                "scan_method" to "deep_directory",
+                                                "is_existing_file" to "true"
+                                            )
+                                        )
+                                        foundFiles.add(fileInfo)
+                                    }
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+                } catch (_: SecurityException) {}
+            }
+        } catch (_: Exception) {}
     }
 }

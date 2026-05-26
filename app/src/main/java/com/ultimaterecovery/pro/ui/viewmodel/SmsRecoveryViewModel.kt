@@ -405,6 +405,17 @@ class SmsRecoveryViewModel @Inject constructor(
     // Error
     // ──────────────────────────────────────────
 
+    // ──────────────────────────────────────────
+    // Convenience filter methods
+    // ──────────────────────────────────────────
+
+    /**
+     * Filters messages by type (convenience method).
+     */
+    fun filterByType(type: SmsType?) {
+        filterMessages(_uiState.value.currentFilter.copy(type = type))
+    }
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
