@@ -766,7 +766,7 @@ class QuickScanner @Inject constructor(
      * @param foundFiles قائمة النتائج
      * @param categories فئات الملفات المطلوبة
      */
-    private fun scanMediaStore(
+    private suspend fun scanMediaStore(
         foundFiles: MutableList<FoundFileInfo>,
         categories: List<FileCategory>
     ) {
@@ -901,7 +901,7 @@ class QuickScanner @Inject constructor(
     /**
      * مسح مجلد التحميلات عبر MediaStore
      */
-    private fun scanDownloadsCollection(
+    private suspend fun scanDownloadsCollection(
         foundFiles: MutableList<FoundFileInfo>,
         categories: List<FileCategory>
     ) {
@@ -915,7 +915,7 @@ class QuickScanner @Inject constructor(
     /**
      * مسح مجلد التحميلات للإصدارات القديمة (Android 9 وأقل)
      */
-    private fun scanDownloadsCollectionLegacy(
+    private suspend fun scanDownloadsCollectionLegacy(
         foundFiles: MutableList<FoundFileInfo>,
         categories: List<FileCategory>
     ) {
