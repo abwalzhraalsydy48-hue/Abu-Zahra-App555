@@ -947,5 +947,4 @@
     <string name="no_files_found">No files found</string>
     <string name="files">%1$d files</string>
     <string name="recovery_failed">Recovery failed</string>
-    <string name="export_failed">Export failed</string>
 </resources>
