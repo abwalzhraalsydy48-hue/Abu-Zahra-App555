@@ -350,7 +350,7 @@ class PreviewActivity : AppCompatActivity() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             
-            val chooser = Intent.createChooser(viewIntent, getString(R.string.open_with))
+            val chooser = Intent.createChooser(viewIntent, getString(R.string.action_open_with))
             startActivity(chooser)
         } catch (e: Exception) {
             Timber.e(e, "Error opening file")
