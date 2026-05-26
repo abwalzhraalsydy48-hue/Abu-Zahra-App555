@@ -1,7 +1,11 @@
 package com.ultimaterecovery.pro.engine.scanner
 
 import android.content.Context
+import android.database.Cursor
+import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import com.ultimaterecovery.pro.data.local.entity.RecoveredFileEntity.FileCategory
 import com.ultimaterecovery.pro.data.local.entity.ScanSessionEntity.ScanType
 import com.ultimaterecovery.pro.engine.recovery.FoundFileInfo
@@ -109,10 +113,22 @@ class QuickScanner @Inject constructor(
 
         try {
             // ═══════════════════════════════════════════
-            // المرحلة 1: مسح الدلائل القياسية للوسائط
+            // المرحلة 1: مسح MediaStore (بدون حاجة للروت)
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
-                progress = 0.05f,
+                progress = 0.02f,
+                currentPath = "مسح مكتبة الوسائط...",
+                filesFound = foundFiles.size,
+                scanType = ScanType.QUICK
+            ))
+
+            scanMediaStore(foundFiles, targetCategories)
+
+            // ═══════════════════════════════════════════
+            // المرحلة 2: مسح الدلائل القياسية للوسائط
+            // ═══════════════════════════════════════════
+            emit(ScanState.Scanning(
+                progress = 0.10f,
                 currentPath = "مسح الدلائل القياسية...",
                 filesFound = foundFiles.size,
                 scanType = ScanType.QUICK
@@ -127,7 +143,7 @@ class QuickScanner @Inject constructor(
             }
 
             // ═══════════════════════════════════════════
-            // المرحلة 2: مسح مجلدات المحذوفات
+            // المرحلة 3: مسح مجلدات المحذوفات
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
                 progress = 0.25f,
@@ -151,7 +167,7 @@ class QuickScanner @Inject constructor(
             }
 
             // ═══════════════════════════════════════════
-            // المرحلة 3: مسح ذاكرة التخزين المؤقت للصور المصغرة
+            // المرحلة 4: مسح ذاكرة التخزين المؤقت للصور المصغرة
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
                 progress = 0.40f,
@@ -174,7 +190,7 @@ class QuickScanner @Inject constructor(
             }
 
             // ═══════════════════════════════════════════
-            // المرحلة 4: مسح الدلائل المخفية (.nomedia)
+            // المرحلة 5: مسح الدلائل المخفية (.nomedia)
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
                 progress = 0.55f,
@@ -197,7 +213,7 @@ class QuickScanner @Inject constructor(
             }
 
             // ═══════════════════════════════════════════
-            // المرحلة 5: مسح مجلدات تطبيقات المراسلة
+            // المرحلة 6: مسح مجلدات تطبيقات المراسلة
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
                 progress = 0.70f,
@@ -219,7 +235,7 @@ class QuickScanner @Inject constructor(
             }
 
             // ═══════════════════════════════════════════
-            // المرحلة 6: مسح المسارات المحددة من المستخدم
+            // المرحلة 7: مسح المسارات المحددة من المستخدم
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
                 progress = 0.80f,
@@ -237,7 +253,7 @@ class QuickScanner @Inject constructor(
             }
 
             // ═══════════════════════════════════════════
-            // المرحلة 7: مسح دلائل التخزين المؤقت
+            // المرحلة 8: مسح دلائل التخزين المؤقت
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
                 progress = 0.90f,
@@ -734,5 +750,247 @@ class QuickScanner @Inject constructor(
         } catch (_: Exception) {}
 
         return dirs.filter { File(it).exists() }.distinct()
+    }
+
+    // ──────────────────────────────────────────────
+    // MediaStore API (بدون حاجة للروت)
+    // ──────────────────────────────────────────────
+
+    /**
+     * مسح MediaStore للوصول إلى ملفات الوسائط بدون حاجة للروت
+     *
+     * يستخدم ContentResolver للوصول إلى جميع ملفات الوسائط
+     * المسجلة في قاعدة بيانات النظام
+     *
+     * @param foundFiles قائمة النتائج
+     * @param categories فئات الملفات المطلوبة
+     */
+    private fun scanMediaStore(
+        foundFiles: MutableList<FoundFileInfo>,
+        categories: List<FileCategory>
+    ) {
+        // مسح الصور
+        if (categories.isEmpty() || FileCategory.PHOTO in categories) {
+            scanMediaStoreCollection(
+                uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection = arrayOf(
+                    MediaStore.Images.Media._ID,
+                    MediaStore.Images.Media.DATA,
+                    MediaStore.Images.Media.DISPLAY_NAME,
+                    MediaStore.Images.Media.SIZE,
+                    MediaStore.Images.Media.DATE_MODIFIED,
+                    MediaStore.Images.Media.MIME_TYPE
+                ),
+                category = FileCategory.PHOTO,
+                foundFiles = foundFiles
+            )
+        }
+
+        // مسح الفيديوهات
+        if (categories.isEmpty() || FileCategory.VIDEO in categories) {
+            scanMediaStoreCollection(
+                uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                projection = arrayOf(
+                    MediaStore.Video.Media._ID,
+                    MediaStore.Video.Media.DATA,
+                    MediaStore.Video.Media.DISPLAY_NAME,
+                    MediaStore.Video.Media.SIZE,
+                    MediaStore.Video.Media.DATE_MODIFIED,
+                    MediaStore.Video.Media.MIME_TYPE
+                ),
+                category = FileCategory.VIDEO,
+                foundFiles = foundFiles
+            )
+        }
+
+        // مسح الملفات الصوتية
+        if (categories.isEmpty() || FileCategory.AUDIO in categories) {
+            scanMediaStoreCollection(
+                uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection = arrayOf(
+                    MediaStore.Audio.Media._ID,
+                    MediaStore.Audio.Media.DATA,
+                    MediaStore.Audio.Media.DISPLAY_NAME,
+                    MediaStore.Audio.Media.SIZE,
+                    MediaStore.Audio.Media.DATE_MODIFIED,
+                    MediaStore.Audio.Media.MIME_TYPE
+                ),
+                category = FileCategory.AUDIO,
+                foundFiles = foundFiles
+            )
+        }
+
+        // مسح الملفات المحملة (قد تحتوي على مستندات)
+        if (categories.isEmpty() || FileCategory.DOCUMENT in categories) {
+            scanDownloadsCollection(foundFiles, categories)
+        }
+    }
+
+    /**
+     * مسح مجموعة من MediaStore
+     */
+    private fun scanMediaStoreCollection(
+        uri: Uri,
+        projection: Array<String>,
+        category: FileCategory,
+        foundFiles: MutableList<FoundFileInfo>
+    ) {
+        try {
+            val cursor: Cursor? = context.contentResolver.query(
+                uri,
+                projection,
+                null,
+                null,
+                "${MediaStore.Images.Media.DATE_MODIFIED} DESC"
+            )
+
+            cursor?.use {
+                val idColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
+                val dataColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+                val nameColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+                val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
+                val dateColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
+                val mimeColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+
+                while (it.moveToNext()) {
+                    try {
+                        val path = it.getString(dataColumn)
+                        val name = it.getString(nameColumn)
+                        val size = it.getLong(sizeColumn)
+                        val date = it.getLong(dateColumn) * 1000 // تحويل إلى milliseconds
+                        val mimeType = it.getString(mimeColumn)
+
+                        // التحقق من وجود الملف
+                        val file = File(path)
+                        if (!file.exists() || file.length() < MIN_FILE_SIZE) continue
+
+                        // التحقق من عدم وجود الملف مسبقاً
+                        if (foundFiles.any { f -> f.path == path }) continue
+
+                        val extension = file.extension.lowercase()
+
+                        foundFiles.add(FoundFileInfo(
+                            path = path,
+                            fileName = name,
+                            fileSize = size,
+                            extension = extension,
+                            mimeType = mimeType ?: getMimeTypeForExtension(extension),
+                            category = category,
+                            signatureName = null,
+                            confidence = RecoveryConfidence.HIGH,
+                            lastModified = date,
+                            isRootRequired = false,
+                            sourcePath = path,
+                            metadata = mapOf(
+                                "source" to "mediastore",
+                                "file_name" to name,
+                                "file_size" to size.toString()
+                            )
+                        ))
+                    } catch (_: Exception) {
+                        // تجاهل الملفات ذات المشاكل
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // تجاهل أخطاء MediaStore
+        }
+    }
+
+    /**
+     * مسح مجلد التحميلات عبر MediaStore
+     */
+    private fun scanDownloadsCollection(
+        foundFiles: MutableList<FoundFileInfo>,
+        categories: List<FileCategory>
+    ) {
+        try {
+            // مسح ملفات التحميلات
+            val downloadsUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            } else {
+                // للإصدارات الأقدم، نستخدم مسار التحميلات مباشرة
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (downloadsDir.exists() && downloadsDir.isDirectory) {
+                    scanDirectory(
+                        downloadsDir,
+                        foundFiles,
+                        mutableSetOf(),
+                        categories,
+                        maxDepth = 3
+                    )
+                }
+                return
+            }
+
+            val projection = arrayOf(
+                MediaStore.Downloads._ID,
+                MediaStore.Downloads.DATA,
+                MediaStore.Downloads.DISPLAY_NAME,
+                MediaStore.Downloads.SIZE,
+                MediaStore.Downloads.DATE_MODIFIED,
+                MediaStore.Downloads.MIME_TYPE
+            )
+
+            val cursor: Cursor? = context.contentResolver.query(
+                downloadsUri,
+                projection,
+                null,
+                null,
+                "${MediaStore.Downloads.DATE_MODIFIED} DESC"
+            )
+
+            cursor?.use {
+                val idColumn = it.getColumnIndexOrThrow(MediaStore.Downloads._ID)
+                val dataColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.DATA)
+                val nameColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.DISPLAY_NAME)
+                val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.SIZE)
+                val dateColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.DATE_MODIFIED)
+                val mimeColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.MIME_TYPE)
+
+                while (it.moveToNext()) {
+                    try {
+                        val path = it.getString(dataColumn)
+                        val name = it.getString(nameColumn)
+                        val size = it.getLong(sizeColumn)
+                        val date = it.getLong(dateColumn) * 1000
+                        val mimeType = it.getString(mimeColumn)
+
+                        val file = File(path)
+                        if (!file.exists() || file.length() < MIN_FILE_SIZE) continue
+                        if (foundFiles.any { f -> f.path == path }) continue
+
+                        val extension = file.extension.lowercase()
+                        val category = categorizeByExtension(extension)
+
+                        // فقط الملفات من الفئات المطلوبة
+                        if (categories.isNotEmpty() && category !in categories) continue
+
+                        foundFiles.add(FoundFileInfo(
+                            path = path,
+                            fileName = name,
+                            fileSize = size,
+                            extension = extension,
+                            mimeType = mimeType ?: getMimeTypeForExtension(extension),
+                            category = category,
+                            signatureName = null,
+                            confidence = RecoveryConfidence.HIGH,
+                            lastModified = date,
+                            isRootRequired = false,
+                            sourcePath = path,
+                            metadata = mapOf(
+                                "source" to "downloads",
+                                "file_name" to name,
+                                "file_size" to size.toString()
+                            )
+                        ))
+                    } catch (_: Exception) {
+                        // تجاهل الملفات ذات المشاكل
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // تجاهل أخطاء Downloads
+        }
     }
 }

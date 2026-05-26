@@ -349,6 +349,15 @@ class ScanViewModel @Inject constructor(
     }
 
     /**
+     * Returns the current scan session ID.
+     *
+     * Returns -1 if no session is active.
+     */
+    fun getCurrentSessionId(): Long {
+        return currentSessionId ?: -1L
+    }
+
+    /**
      * Saves the scan results to the database as [RecoveredFileEntity]
      * records linked to the current scan session.
      */

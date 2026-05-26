@@ -1,8 +1,15 @@
 package com.ultimaterecovery.pro.ui.activities
 
+import android.app.DownloadManager
+import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -19,6 +26,8 @@ import com.ultimaterecovery.pro.R
 import com.ultimaterecovery.pro.databinding.ActivityPreviewBinding
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import timber.log.Timber
 
 /**
@@ -128,8 +137,7 @@ class PreviewActivity : AppCompatActivity() {
 
     private fun setupControls() {
         binding.fabRecover.setOnClickListener {
-            // In production, delegate to the ViewModel's recovery engine
-            Toast.makeText(this, R.string.recovering_file, Toast.LENGTH_SHORT).show()
+            exportFile()
         }
 
         binding.fabShare.setOnClickListener {
@@ -283,6 +291,129 @@ class PreviewActivity : AppCompatActivity() {
             startActivity(Intent.createChooser(shareIntent, getString(R.string.share_file)))
         } catch (e: Exception) {
             Toast.makeText(this, getString(R.string.share_error, e.message), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // ──────────────────────────────────────────
+    // Export/Save
+    // ──────────────────────────────────────────
+
+    /**
+     * تصدير الملف إلى مجلد التحميلات
+     */
+    private fun exportFile() {
+        try {
+            val sourceFile = File(filePath)
+            if (!sourceFile.exists()) {
+                Toast.makeText(this, R.string.file_not_found, Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            Toast.makeText(this, R.string.exporting_file, Toast.LENGTH_SHORT).show()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Android 10+ - استخدام MediaStore API
+                exportViaMediaStore(sourceFile)
+            } else {
+                // Android 9 وأقل - النسخ المباشر
+                exportLegacy(sourceFile)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error exporting file")
+            Toast.makeText(this, getString(R.string.export_error, e.message), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * تصدير باستخدام MediaStore API (Android 10+)
+     */
+    private fun exportViaMediaStore(sourceFile: File) {
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, mimeType.ifBlank { "*/*" })
+            put(MediaStore.MediaColumns.RELATIVE_PATH, getRelativePathForMimeType())
+        }
+
+        val contentUri = when {
+            mimeType.startsWith("image/") -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            mimeType.startsWith("video/") -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            mimeType.startsWith("audio/") -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            else -> MediaStore.Downloads.EXTERNAL_CONTENT_URI
+        }
+
+        try {
+            val uri = contentResolver.insert(contentUri, contentValues)
+            if (uri != null) {
+                contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    FileInputStream(sourceFile).use { inputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+                Toast.makeText(this, getString(R.string.export_success, fileName), Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, R.string.export_failed, Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error exporting via MediaStore")
+            Toast.makeText(this, getString(R.string.export_error, e.message), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * تصدير للإصدارات القديمة (Android 9 وأقل)
+     */
+    private fun exportLegacy(sourceFile: File) {
+        val destDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+            "UltimateRecovery"
+        )
+        if (!destDir.exists()) {
+            destDir.mkdirs()
+        }
+
+        val destFile = File(destDir, fileName)
+        var finalDestFile = destFile
+        var counter = 1
+
+        // تجنب الكتابة فوق الملفات الموجودة
+        while (finalDestFile.exists()) {
+            val name = sourceFile.nameWithoutExtension
+            val ext = sourceFile.extension
+            finalDestFile = File(destDir, "${name}_$counter.$ext")
+            counter++
+        }
+
+        try {
+            FileInputStream(sourceFile).use { input ->
+                FileOutputStream(finalDestFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            // تحديث MediaStore
+            MediaScannerConnection.scanFile(
+                this,
+                arrayOf(finalDestFile.absolutePath),
+                arrayOf(mimeType),
+                null
+            )
+
+            Toast.makeText(this, getString(R.string.export_success, finalDestFile.name), Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Timber.e(e, "Error exporting legacy")
+            Toast.makeText(this, getString(R.string.export_error, e.message), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /**
+     * الحصول على المسار النسبي حسب نوع الملف
+     */
+    private fun getRelativePathForMimeType(): String {
+        return when {
+            mimeType.startsWith("image/") -> "${Environment.DIRECTORY_DCIM}/UltimateRecovery"
+            mimeType.startsWith("video/") -> "${Environment.DIRECTORY_MOVIES}/UltimateRecovery"
+            mimeType.startsWith("audio/") -> "${Environment.DIRECTORY_MUSIC}/UltimateRecovery"
+            else -> "${Environment.DIRECTORY_DOWNLOADS}/UltimateRecovery"
         }
     }
 

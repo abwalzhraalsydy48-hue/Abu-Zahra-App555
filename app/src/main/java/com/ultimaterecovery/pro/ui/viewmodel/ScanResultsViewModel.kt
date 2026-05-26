@@ -92,7 +92,80 @@ class ScanResultsViewModel @Inject constructor(
      */
     fun loadFiles(sessionId: Long) {
         currentSessionId = sessionId
-        loadAllFiles()
+        if (sessionId > 0) {
+            loadFilesBySession(sessionId)
+        } else {
+            loadAllFiles()
+        }
+    }
+
+    /**
+     * Loads files by session ID from the repository.
+     *
+     * يحمل الملفات حسب معرف جلسة المسح
+     */
+    private fun loadFilesBySession(sessionId: Long) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+
+                // الحصول على الملفات حسب معرف الجلسة
+                recoveredFileRepository.getFilesBySession(sessionId)
+                    .catch { e ->
+                        Timber.e(e, "Error loading recovered files by session")
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = e.message ?: "Failed to load files"
+                            )
+                        }
+                    }
+                    .collect { resource ->
+                        when (resource) {
+                            is Resource.Success -> {
+                                val files = resource.data ?: emptyList()
+                                val categoryCounts = files.groupingBy { it.category }.eachCount()
+
+                                Timber.d("Loaded ${files.size} files for session $sessionId, categories: $categoryCounts")
+
+                                _uiState.update { state ->
+                                    state.copy(
+                                        allFiles = files,
+                                        filteredFiles = if (state.selectedCategory != null) {
+                                            files.filter { file -> file.category == state.selectedCategory }
+                                        } else {
+                                            files
+                                        },
+                                        categoryCounts = categoryCounts,
+                                        isLoading = false,
+                                        error = null
+                                    )
+                                }
+                                updateSelectedSize()
+                            }
+                            is Resource.Error -> {
+                                _uiState.update {
+                                    it.copy(
+                                        isLoading = false,
+                                        error = resource.message
+                                    )
+                                }
+                            }
+                            is Resource.Loading -> {
+                                // 保持当前加载状态
+                            }
+                        }
+                    }
+            } catch (e: Exception) {
+                Timber.e(e, "Error in loadFilesBySession")
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = e.message ?: "An unexpected error occurred"
+                    )
+                }
+            }
+        }
     }
 
     /**

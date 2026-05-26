@@ -1,5 +1,6 @@
 package com.ultimaterecovery.pro.ui.activities
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -206,6 +207,30 @@ class ScanActivity : AppCompatActivity() {
             state.totalFiles,
             formatFileSize(state.totalSize)
         )
+
+        // Save results and navigate to ScanResultsActivity
+        if (state.totalFiles > 0) {
+            viewModel.saveScanResults()
+            
+            // Show dialog with options
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.scan_complete)
+                .setMessage(getString(R.string.scan_complete_summary, state.totalFiles, formatFileSize(state.totalSize)))
+                .setPositiveButton(R.string.view_results) { _, _ ->
+                    navigateToResults()
+                }
+                .setNegativeButton(R.string.close, null)
+                .show()
+        }
+    }
+
+    private fun navigateToResults() {
+        val sessionId = viewModel.getCurrentSessionId()
+        val intent = Intent(this, ScanResultsActivity::class.java).apply {
+            putExtra(ScanResultsActivity.EXTRA_SESSION_ID, sessionId)
+            putExtra(ScanResultsActivity.EXTRA_FILES_COUNT, viewModel.getScanResults().size)
+        }
+        startActivity(intent)
     }
 
     private fun showFailedState(state: ScanState.Failed) {

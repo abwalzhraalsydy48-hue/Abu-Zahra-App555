@@ -132,6 +132,8 @@
     <string name="scan_files_found">%1$d files found</string>
     <string name="scan_complete">Scan Complete</string>
     <string name="scan_complete_summary">Found %1$d recoverable files (%2$s)</string>
+    <string name="view_results">View Results</string>
+    <string name="close">Close</string>
     <string name="scan_no_results">No recoverable files found</string>
     <string name="scan_no_results_hint">Try a deep scan or scan a different location</string>
     <string name="scan_error">Scan Error</string>
@@ -791,6 +793,10 @@
     <string name="file_not_found">File not found</string>
     <string name="share_file">Share file</string>
     <string name="share_error">Error sharing: %1$s</string>
+    <string name="exporting_file">Exporting file…</string>
+    <string name="export_success">File exported: %1$s</string>
+    <string name="export_error">Export error: %1$s</string>
+    <string name="export_failed">Failed to export file</string>
     <string name="cancel_scan_title">Cancel Scan?</string>
     <string name="cancel_scan_message">Are you sure you want to cancel the scan? Results found so far will be saved.</string>
     <string name="results_saved">Results saved</string>
