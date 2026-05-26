@@ -32,6 +32,7 @@ import timber.log.Timber
  * - File info overlay
  * - Recover button
  * - Share button
+ * - Open with external app button
  * - Support for all media types (image, video, audio, document)
  */
 class PreviewActivity : AppCompatActivity() {
@@ -85,8 +86,10 @@ class PreviewActivity : AppCompatActivity() {
 
         } catch (e: Exception) {
             Timber.e(e, "Error in onCreate")
+            showErrorAndFinish("Error loading preview: ${e.message}")
         } catch (_: Throwable) {
             // Prevent crash
+            showErrorAndFinish("An unexpected error occurred")
         }
     }
 
@@ -137,6 +140,11 @@ class PreviewActivity : AppCompatActivity() {
             shareFile()
         }
 
+        // Close button
+        binding.btnClose.setOnClickListener {
+            finish()
+        }
+
         // Toggle file info overlay on tap
         binding.root.setOnClickListener {
             toggleFileInfoOverlay()
@@ -150,6 +158,13 @@ class PreviewActivity : AppCompatActivity() {
     private fun loadPreview() {
         populateFileInfo()
 
+        // Check if file exists
+        val file = File(filePath)
+        if (!file.exists()) {
+            showFileNotFound()
+            return
+        }
+
         when {
             mimeType.startsWith("image/") -> loadImagePreview()
             mimeType.startsWith("video/") -> loadVideoPreview()
@@ -159,57 +174,87 @@ class PreviewActivity : AppCompatActivity() {
     }
 
     /**
-     * Loads an image using Glide with zoom/pan support via PhotoView.
+     * Shows file not found state
+     */
+    private fun showFileNotFound() {
+        binding.photoView.visibility = View.GONE
+        binding.playerView.visibility = View.GONE
+        binding.layoutGenericPreview.visibility = View.VISIBLE
+        
+        binding.ivFileIcon.setImageResource(R.drawable.ic_broken_image)
+        binding.textFileName.text = fileName
+        binding.textFileName.visibility = View.VISIBLE
+        
+        Toast.makeText(this, R.string.file_not_found, Toast.LENGTH_LONG).show()
+    }
+
+    /**
+     * Loads an image using Glide with zoom/pan support.
      */
     private fun loadImagePreview() {
-        binding.photoView?.visibility = View.VISIBLE
-        binding.playerView?.visibility = View.GONE
-        binding.layoutGenericPreview?.visibility = View.GONE
+        binding.photoView.visibility = View.VISIBLE
+        binding.playerView.visibility = View.GONE
+        binding.layoutGenericPreview.visibility = View.GONE
 
-        Glide.with(this)
-            .load(File(filePath))
-            .placeholder(R.drawable.ic_photo_placeholder)
-            .error(R.drawable.ic_broken_image)
-            .into(binding.photoView)
+        try {
+            Glide.with(this)
+                .load(File(filePath))
+                .placeholder(R.drawable.ic_photo_placeholder)
+                .error(R.drawable.ic_broken_image)
+                .into(binding.photoView)
+        } catch (e: Exception) {
+            Timber.e(e, "Error loading image")
+            showFileNotFound()
+        }
     }
 
     /**
      * Sets up ExoPlayer for video playback.
      */
     private fun loadVideoPreview() {
-        binding.photoView?.visibility = View.GONE
-        binding.playerView?.visibility = View.VISIBLE
-        binding.layoutGenericPreview?.visibility = View.GONE
+        binding.photoView.visibility = View.GONE
+        binding.playerView.visibility = View.VISIBLE
+        binding.layoutGenericPreview.visibility = View.GONE
 
-        initializePlayer()
-        val mediaItem = MediaItem.fromUri(Uri.fromFile(File(filePath)))
-        exoPlayer?.setMediaItem(mediaItem)
-        exoPlayer?.prepare()
-        exoPlayer?.playWhenReady = false
+        try {
+            initializePlayer()
+            val mediaItem = MediaItem.fromUri(Uri.fromFile(File(filePath)))
+            exoPlayer?.setMediaItem(mediaItem)
+            exoPlayer?.prepare()
+            exoPlayer?.playWhenReady = false
+        } catch (e: Exception) {
+            Timber.e(e, "Error loading video")
+            showFileNotFound()
+        }
     }
 
     /**
      * Shows an audio visualization with player controls.
      */
     private fun loadAudioPreview() {
-        binding.photoView?.visibility = View.GONE
-        binding.playerView?.visibility = View.VISIBLE
-        binding.layoutGenericPreview?.visibility = View.GONE
+        binding.photoView.visibility = View.GONE
+        binding.playerView.visibility = View.VISIBLE
+        binding.layoutGenericPreview.visibility = View.GONE
 
-        initializePlayer()
-        val mediaItem = MediaItem.fromUri(Uri.fromFile(File(filePath)))
-        exoPlayer?.setMediaItem(mediaItem)
-        exoPlayer?.prepare()
-        exoPlayer?.playWhenReady = false
+        try {
+            initializePlayer()
+            val mediaItem = MediaItem.fromUri(Uri.fromFile(File(filePath)))
+            exoPlayer?.setMediaItem(mediaItem)
+            exoPlayer?.prepare()
+            exoPlayer?.playWhenReady = false
+        } catch (e: Exception) {
+            Timber.e(e, "Error loading audio")
+            showFileNotFound()
+        }
     }
 
     /**
      * Shows a generic file type icon with file info.
      */
     private fun loadGenericPreview() {
-        binding.photoView?.visibility = View.GONE
-        binding.playerView?.visibility = View.GONE
-        binding.layoutGenericPreview?.visibility = View.VISIBLE
+        binding.photoView.visibility = View.GONE
+        binding.playerView.visibility = View.GONE
+        binding.layoutGenericPreview.visibility = View.VISIBLE
 
         val iconRes = when {
             mimeType.contains("pdf")   -> R.drawable.ic_pdf
@@ -242,20 +287,21 @@ class PreviewActivity : AppCompatActivity() {
     // ──────────────────────────────────────────
 
     private fun populateFileInfo() {
-        binding.tvFileName.text = fileName
-        binding.tvFileSize.text = formatFileSize(fileSize)
-        binding.tvFilePath.text = filePath
-        binding.tvFileMimeType.text = mimeType
+        binding.textFileName.text = fileName
+        binding.textFileSize.text = formatFileSize(fileSize)
+        binding.textRecoveryChance.text = getString(R.string.high_recovery_chance)
 
         val file = File(filePath)
         if (file.exists()) {
-            binding.tvFileDate.text = formatDate(file.lastModified())
+            binding.textFileDate.text = formatDate(file.lastModified())
+        } else {
+            binding.textFileDate.text = getString(R.string.file_not_available)
         }
     }
 
     private fun toggleFileInfoOverlay() {
-        binding.layoutFileInfoOverlay.visibility =
-            if (binding.layoutFileInfoOverlay.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        binding.cardFileInfo.visibility =
+            if (binding.cardFileInfo.visibility == View.VISIBLE) View.GONE else View.VISIBLE
     }
 
     // ──────────────────────────────────────────
@@ -270,11 +316,7 @@ class PreviewActivity : AppCompatActivity() {
                 return
             }
 
-            val uri = FileProvider.getUriForFile(
-                this,
-                "${packageName}.fileprovider",
-                file
-            )
+            val uri = getFileUri(file)
 
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = mimeType.ifBlank { "*/*" }
@@ -283,8 +325,52 @@ class PreviewActivity : AppCompatActivity() {
             }
             startActivity(Intent.createChooser(shareIntent, getString(R.string.share_file)))
         } catch (e: Exception) {
+            Timber.e(e, "Error sharing file")
             Toast.makeText(this, getString(R.string.share_error, e.message), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    // ──────────────────────────────────────────
+    // Open with external app
+    // ──────────────────────────────────────────
+
+    private fun openWithExternalApp() {
+        try {
+            val file = File(filePath)
+            if (!file.exists()) {
+                Toast.makeText(this, R.string.file_not_found, Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            val uri = getFileUri(file)
+
+            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType.ifBlank { "*/*" })
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            
+            val chooser = Intent.createChooser(viewIntent, getString(R.string.open_with))
+            startActivity(chooser)
+        } catch (e: Exception) {
+            Timber.e(e, "Error opening file")
+            Toast.makeText(this, getString(R.string.open_error, e.message), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // ──────────────────────────────────────────
+    // FileProvider URI
+    // ──────────────────────────────────────────
+
+    /**
+     * Get a content URI for a file using FileProvider
+     */
+    private fun getFileUri(file: File): Uri {
+        return FileProvider.getUriForFile(
+            this,
+            "${packageName}.fileprovider",
+            file
+        )
     }
 
     // ──────────────────────────────────────────
@@ -292,7 +378,7 @@ class PreviewActivity : AppCompatActivity() {
     // ──────────────────────────────────────────
 
     /**
-     * تصدير الملف إلى مجلد التحميلات
+     * Export the file to downloads folder
      */
     private fun exportFile() {
         try {
@@ -305,10 +391,10 @@ class PreviewActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.exporting_file, Toast.LENGTH_SHORT).show()
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // Android 10+ - استخدام MediaStore API
+                // Android 10+ - use MediaStore API
                 exportViaMediaStore(sourceFile)
             } else {
-                // Android 9 وأقل - النسخ المباشر
+                // Android 9 and below - direct copy
                 exportLegacy(sourceFile)
             }
         } catch (e: Exception) {
@@ -318,7 +404,7 @@ class PreviewActivity : AppCompatActivity() {
     }
 
     /**
-     * تصدير باستخدام MediaStore API (Android 10+)
+     * Export using MediaStore API (Android 10+)
      */
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun exportViaMediaStore(sourceFile: File) {
@@ -354,7 +440,7 @@ class PreviewActivity : AppCompatActivity() {
     }
 
     /**
-     * تصدير للإصدارات القديمة (Android 9 وأقل)
+     * Export for older versions (Android 9 and below)
      */
     private fun exportLegacy(sourceFile: File) {
         val destDir = File(
@@ -369,7 +455,7 @@ class PreviewActivity : AppCompatActivity() {
         var finalDestFile = destFile
         var counter = 1
 
-        // تجنب الكتابة فوق الملفات الموجودة
+        // Avoid overwriting existing files
         while (finalDestFile.exists()) {
             val name = sourceFile.nameWithoutExtension
             val ext = sourceFile.extension
@@ -384,7 +470,7 @@ class PreviewActivity : AppCompatActivity() {
                 }
             }
 
-            // تحديث MediaStore
+            // Update MediaStore
             MediaScannerConnection.scanFile(
                 this,
                 arrayOf(finalDestFile.absolutePath),
@@ -400,7 +486,7 @@ class PreviewActivity : AppCompatActivity() {
     }
 
     /**
-     * الحصول على المسار النسبي حسب نوع الملف
+     * Get relative path based on MIME type
      */
     private fun getRelativePathForMimeType(): String {
         return when {
@@ -428,5 +514,10 @@ class PreviewActivity : AppCompatActivity() {
     private fun formatDate(timestamp: Long): String {
         return java.text.DateFormat.getDateTimeInstance()
             .format(java.util.Date(timestamp))
+    }
+
+    private fun showErrorAndFinish(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        finish()
     }
 }

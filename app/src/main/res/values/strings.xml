@@ -809,6 +809,9 @@
     <string name="result_total_size">Total size: %1$s</string>
     <string name="result_duration">Duration: %1$ds</string>
     <string name="preview">Preview</string>
+    <string name="high_recovery_chance">High</string>
+    <string name="file_not_available">File not available</string>
+    <string name="open_error">Error opening file: %1$s</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="ok">OK</string>

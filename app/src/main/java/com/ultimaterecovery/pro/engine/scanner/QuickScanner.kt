@@ -26,19 +26,19 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * الماسح السريع - يبحث في نظام الملفات عن الملفات المحذوفة
+ * Quick Scanner - Searches the file system for deleted/lost files
  *
- * يستخدم هذا الماسح عدة استراتيجيات للعثور على الملفات المحذوفة بسرعة:
+ * This scanner uses multiple strategies to find deleted files quickly:
  *
- * 1. مسح الدلائل القياسية (DCIM, Pictures, Movies, Music, Downloads, Documents)
- * 2. فحص ذاكرة التخزين المؤقت للصور المصغرة (Thumbnail Cache)
- * 3. مسح الدلائل المخفية بملف .nomedia
- * 4. فحص مجلدات "المحذوفة مؤخراً" (Recently Deleted / Trash)
- * 5. مسح مجلدات تطبيقات المراسلة (WhatsApp, Telegram)
- * 6. فحص ملفات الوسائط المؤقتة والمخزنة مؤقتاً
+ * 1. Scan MediaStore for entries where the actual file is MISSING (deleted but entry remains)
+ * 2. Scan trash/deleted folders (.Trash, .deleted, $RECYCLE.BIN, etc.)
+ * 3. Scan thumbnail cache directories (may contain thumbnails of deleted photos)
+ * 4. Scan .nomedia directories (hidden from gallery, potential recovery candidates)
+ * 5. Scan temp/cache directories (temporary files that may be recoverable)
+ * 6. Scan app-specific deleted folders (WhatsApp .Trash, Telegram recent, etc.)
  *
- * المسح السريع أسرع بكثير من المسح العميق لأنه يعتمد على
- * إدخالات نظام الملفات الموجودة بدلاً من قراءة الكتل الخام.
+ * IMPORTANT: This scanner does NOT scan regular folders like DCIM/Camera or Pictures
+ * for existing files - it ONLY looks for deleted/lost/recoverable files.
  */
 @Singleton
 class QuickScanner @Inject constructor(
@@ -46,13 +46,13 @@ class QuickScanner @Inject constructor(
 ) {
 
     companion object {
-        /** حجم رأس الملف المقروء للتعرف على النوع (512 بايت) */
+        /** File header size for type identification (512 bytes) */
         private const val HEADER_READ_SIZE = 512
 
-        /** الحد الأدنى لحجم الملف المراد تضمينه (1 كيلوبايت) */
+        /** Minimum file size to include (1 KB) */
         private const val MIN_FILE_SIZE = 1024L
 
-        /** أنماط أسماء مجلدات المحذوفات */
+        /** Trash folder name patterns */
         private val TRASH_PATTERNS = listOf(
             ".Trash", ".trash", ".Trashes",
             "Trash", "trash", "Trashes",
@@ -61,40 +61,69 @@ class QuickScanner @Inject constructor(
             ".recent", "recent",
             "Recently Deleted", "RecentlyDeleted",
             ".Recycle", "Recycle", "\$RECYCLE.BIN",
-            ".Trash-1000", ".Trash-1001" // Linux trash directories
+            ".Trash-1000", ".Trash-1001",
+            "Deleted", ".Deleted",
+            "bin", ".bin" // Some apps use 'bin' for deleted items
         )
 
-        /** أنماط مجلدات ذاكرة التخزين المؤقت للصور المصغرة */
+        /** Thumbnail cache directory patterns */
         private val THUMBNAIL_DIRS = listOf(
             ".thumbnails", "thumbnails", ".thumbdata",
-            "thumb", ".thumb"
+            "thumb", ".thumb", "Thumb",
+            "cache", ".cache"
         )
 
-        /** أنماط دلائل التطبيقات الخاصة بالوسائط */
-        private val APP_MEDIA_DIRS = listOf(
-            "WhatsApp", "Telegram", "Viber", "Signal",
-            "Instagram", "Snapchat", "Facebook",
-            "Skype", "LINE", "KakaoTalk", "WeChat",
-            "Discord", "Slack", "Microsoft Teams"
-        )
-
-        /** أنماط دلائل التخزين المؤقت */
+        /** Temp/cache directory patterns */
         private val CACHE_PATTERNS = listOf(
             "cache", "Cache", ".cache",
             "temp", "Temp", ".temp", "tmp",
             "backup", "Backup", ".backup"
         )
+
+        /** App-specific trash folders */
+        private val APP_TRASH_PATHS = listOf(
+            // WhatsApp
+            "WhatsApp/.Trash",
+            "WhatsApp/Media/.Trash",
+            "WhatsApp/.deleted",
+            "WhatsApp Business/.Trash",
+            "WhatsApp Business/Media/.Trash",
+            // Telegram
+            "Telegram/.Trash",
+            "Telegram/.deleted",
+            // Signal
+            "Signal/.Trash",
+            // Viber
+            "Viber/.Trash",
+            // General
+            "Android/data/com.whatsapp/files/.Trash",
+            "Android/data/org.telegram.messenger/files/.Trash"
+        )
+
+        /** Patterns for recently deleted files (filename contains these) */
+        private val DELETED_FILE_PATTERNS = listOf(
+            ".deleted", ".trash", ".tmp", ".temp",
+            ".bak", ".backup", ".old", "_deleted",
+            "_trash", "_old", "_backup"
+        )
+
+        /** Directories to SKIP (these contain normal existing files) */
+        private val SKIP_DIRECTORIES = setOf(
+            "Camera", "camera", "Screenshots", "screenshots",
+            "ScreenRecorder", "Edit", "Photo Editor",
+            "Movies", "Music", "Podcasts", "Audiobooks",
+            "Notifications", "Ringtones", "Alarms"
+        )
     }
 
     /**
-     * بدء المسح السريع
+     * Start the quick scan
      *
-     * يقوم بمسح شامل للمسارات المحددة مع التركيز على
-     * الدلائل التي يحتمل وجود ملفات محذوفة فيها.
+     * Scans for deleted/recoverable files only, NOT all existing files.
      *
-     * @param paths قائمة المسارات المراد مسحها
-     * @param categories فئات الملفات المراد البحث عنها (فارغ = جميع الفئات)
-     * @return تدفق حالة المسح مع النتائج
+     * @param paths List of paths to scan (if empty, uses default recovery paths)
+     * @param categories File categories to search for (empty = all categories)
+     * @return Flow of scan state with results
      */
     fun scan(
         paths: List<String>,
@@ -106,57 +135,60 @@ class QuickScanner @Inject constructor(
         var totalBytesScanned = 0L
         var directoriesScanned = 0
 
-        // تحديد المسارات الافتراضية إذا لم يتم تحديد مسارات
-        val scanPaths = if (paths.isEmpty()) getDefaultScanPaths() else paths
-
-        // تحديد التوقيعات المطلوبة حسب الفئات
         val targetCategories = if (categories.isEmpty()) FileCategory.values().toList() else categories
 
         try {
             // ═══════════════════════════════════════════
-            // المرحلة 1: مسح MediaStore (بدون حاجة للروت)
+            // Phase 1: Scan MediaStore for MISSING files
+            // (Files that exist in database but actual file is deleted)
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
-                progress = 0.02f,
-                currentPath = "مسح مكتبة الوسائط...",
+                progress = 0.05f,
+                currentPath = "Scanning for deleted media entries...",
                 filesFound = foundFiles.size,
                 scanType = ScanType.QUICK
             ))
 
-            scanMediaStore(foundFiles, targetCategories)
+            scanMediaStoreForDeletedFiles(foundFiles, targetCategories)
 
             // ═══════════════════════════════════════════
-            // المرحلة 2: مسح الدلائل القياسية للوسائط
+            // Phase 2: Scan trash/deleted folders
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
-                progress = 0.10f,
-                currentPath = "مسح الدلائل القياسية...",
-                filesFound = foundFiles.size,
-                scanType = ScanType.QUICK
-            ))
-
-            for (standardDir in getStandardMediaDirectories()) {
-                val dir = File(standardDir)
-                if (dir.exists() && dir.isDirectory) {
-                    scanDirectory(dir, foundFiles, scannedPaths, targetCategories, maxDepth = 5)
-                    directoriesScanned++
-                }
-            }
-
-            // ═══════════════════════════════════════════
-            // المرحلة 3: مسح مجلدات المحذوفات
-            // ═══════════════════════════════════════════
-            emit(ScanState.Scanning(
-                progress = 0.25f,
-                currentPath = "مسح مجلدات المحذوفات...",
+                progress = 0.20f,
+                currentPath = "Scanning trash folders...",
                 filesFound = foundFiles.size,
                 scanType = ScanType.QUICK
             ))
 
             for (trashDir in findTrashDirectories()) {
+                if (!currentCoroutineContext().isActive) return@flow
                 val dir = File(trashDir)
                 if (dir.exists() && dir.isDirectory) {
-                    // ملفات المحذوفات لها أولوية عالية - يرجح أنها محذوفة حديثاً
+                    scanDirectory(
+                        dir, foundFiles, scannedPaths, targetCategories,
+                        maxDepth = 5,
+                        confidence = RecoveryConfidence.HIGH,
+                        isLikelyDeleted = true
+                    )
+                    directoriesScanned++
+                }
+            }
+
+            // ═══════════════════════════════════════════
+            // Phase 3: Scan app-specific trash folders
+            // ═══════════════════════════════════════════
+            emit(ScanState.Scanning(
+                progress = 0.35f,
+                currentPath = "Scanning app deleted folders...",
+                filesFound = foundFiles.size,
+                scanType = ScanType.QUICK
+            ))
+
+            for (appTrashPath in findAppTrashDirectories()) {
+                if (!currentCoroutineContext().isActive) return@flow
+                val dir = File(appTrashPath)
+                if (dir.exists() && dir.isDirectory) {
                     scanDirectory(
                         dir, foundFiles, scannedPaths, targetCategories,
                         maxDepth = 4,
@@ -168,16 +200,17 @@ class QuickScanner @Inject constructor(
             }
 
             // ═══════════════════════════════════════════
-            // المرحلة 4: مسح ذاكرة التخزين المؤقت للصور المصغرة
+            // Phase 4: Scan thumbnail cache directories
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
-                progress = 0.40f,
-                currentPath = "مسح ذاكرة الصور المصغرة...",
+                progress = 0.50f,
+                currentPath = "Scanning thumbnail caches...",
                 filesFound = foundFiles.size,
                 scanType = ScanType.QUICK
             ))
 
             for (thumbDir in findThumbnailDirectories()) {
+                if (!currentCoroutineContext().isActive) return@flow
                 val dir = File(thumbDir)
                 if (dir.exists() && dir.isDirectory) {
                     scanDirectory(
@@ -191,79 +224,41 @@ class QuickScanner @Inject constructor(
             }
 
             // ═══════════════════════════════════════════
-            // المرحلة 5: مسح الدلائل المخفية (.nomedia)
+            // Phase 5: Scan .nomedia directories
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
-                progress = 0.55f,
-                currentPath = "مسح الدلائل المخفية...",
+                progress = 0.65f,
+                currentPath = "Scanning hidden directories...",
                 filesFound = foundFiles.size,
                 scanType = ScanType.QUICK
             ))
 
             for (nomediaDir in findNomediaDirectories()) {
+                if (!currentCoroutineContext().isActive) return@flow
                 val dir = File(nomediaDir)
                 if (dir.exists() && dir.isDirectory) {
                     scanDirectory(
                         dir, foundFiles, scannedPaths, targetCategories,
                         maxDepth = 4,
                         confidence = RecoveryConfidence.MEDIUM,
-                        isLikelyDeleted = false // قد تكون مقصودة الإخفاء
+                        isLikelyDeleted = false
                     )
                     directoriesScanned++
                 }
             }
 
             // ═══════════════════════════════════════════
-            // المرحلة 6: مسح مجلدات تطبيقات المراسلة
-            // ═══════════════════════════════════════════
-            emit(ScanState.Scanning(
-                progress = 0.70f,
-                currentPath = "مسح مجلدات التطبيقات...",
-                filesFound = foundFiles.size,
-                scanType = ScanType.QUICK
-            ))
-
-            for (appDir in findAppMediaDirectories()) {
-                val dir = File(appDir)
-                if (dir.exists() && dir.isDirectory) {
-                    scanDirectory(
-                        dir, foundFiles, scannedPaths, targetCategories,
-                        maxDepth = 5,
-                        confidence = RecoveryConfidence.MEDIUM
-                    )
-                    directoriesScanned++
-                }
-            }
-
-            // ═══════════════════════════════════════════
-            // المرحلة 7: مسح المسارات المحددة من المستخدم
+            // Phase 6: Scan temp/cache directories
             // ═══════════════════════════════════════════
             emit(ScanState.Scanning(
                 progress = 0.80f,
-                currentPath = "مسح المسارات المحددة...",
-                filesFound = foundFiles.size,
-                scanType = ScanType.QUICK
-            ))
-
-            for (path in scanPaths) {
-                val dir = File(path)
-                if (dir.exists() && dir.isDirectory && path !in scannedPaths) {
-                    scanDirectory(dir, foundFiles, scannedPaths, targetCategories, maxDepth = 6)
-                    directoriesScanned++
-                }
-            }
-
-            // ═══════════════════════════════════════════
-            // المرحلة 8: مسح دلائل التخزين المؤقت
-            // ═══════════════════════════════════════════
-            emit(ScanState.Scanning(
-                progress = 0.90f,
-                currentPath = "مسح ذاكرة التخزين المؤقت...",
+                currentPath = "Scanning cache directories...",
                 filesFound = foundFiles.size,
                 scanType = ScanType.QUICK
             ))
 
             for (cacheDir in findCacheDirectories()) {
+                if (!currentCoroutineContext().isActive) return@flow
                 val dir = File(cacheDir)
                 if (dir.exists() && dir.isDirectory) {
                     scanDirectory(
@@ -277,10 +272,34 @@ class QuickScanner @Inject constructor(
             }
 
             // ═══════════════════════════════════════════
-            // إزالة المكررات وإرسال النتيجة النهائية
+            // Phase 7: Scan user-specified paths (only for deleted indicators)
+            // ═══════════════════════════════════════════
+            if (paths.isNotEmpty()) {
+                emit(ScanState.Scanning(
+                    progress = 0.90f,
+                    currentPath = "Scanning specified paths...",
+                    filesFound = foundFiles.size,
+                    scanType = ScanType.QUICK
+                ))
+
+                for (path in paths) {
+                    if (!currentCoroutineContext().isActive) return@flow
+                    val dir = File(path)
+                    if (dir.exists() && dir.isDirectory && path !in scannedPaths) {
+                        // Only scan for files with deleted indicators in user paths
+                        scanDirectoryForDeletedFilesOnly(
+                            dir, foundFiles, scannedPaths, targetCategories, maxDepth = 4
+                        )
+                        directoriesScanned++
+                    }
+                }
+            }
+
+            // ═══════════════════════════════════════════
+            // Remove duplicates and return results
             // ═══════════════════════════════════════════
             val uniqueFiles = foundFiles
-                .distinctBy { it.path }
+                .distinctBy { Triple(it.path, it.fileSize, it.lastModified) }
                 .sortedByDescending { it.lastModified }
 
             val elapsed = System.currentTimeMillis() - startTime
@@ -294,26 +313,164 @@ class QuickScanner @Inject constructor(
 
         } catch (e: Exception) {
             emit(ScanState.Failed(
-                error = e.message ?: "خطأ في المسح السريع",
+                error = e.message ?: "Quick scan error",
                 scanType = ScanType.QUICK,
-                partialResults = foundFiles.distinctBy { it.path }
+                partialResults = foundFiles.distinctBy { Triple(it.path, it.fileSize, it.lastModified) }
             ))
         }
     }.flowOn(Dispatchers.IO)
 
     /**
-     * مسح دليل واحد بحثاً عن ملفات
-     *
-     * يعبر شجرة الملفات بشكل متكرر ويفحص كل ملف
-     * لتحديد ما إذا كان ملف وسائط محذوفاً أو مخفياً
-     *
-     * @param directory الدليل المراد مسحه
-     * @param foundFiles قائمة النتائج المراد إضافة الملفات إليها
-     * @param scannedPaths مجموعة المسارات التي تم مسحها (لتجنب التكرار)
-     * @param categories فئات الملفات المطلوبة
-     * @param maxDepth أقصى عمق للمسح المتكرر
-     * @param confidence مستوى الثقة الافتراضي للملفات المكتشفة
-     * @param isLikelyDeleted هل الملفات في هذا الدليل يرجح أنها محذوفة؟
+     * Scan MediaStore for files where the entry exists but the actual file is MISSING
+     * This is the primary way to find recently deleted files
+     */
+    private suspend fun scanMediaStoreForDeletedFiles(
+        foundFiles: MutableList<FoundFileInfo>,
+        categories: List<FileCategory>
+    ) {
+        // Scan images for missing files
+        if (categories.isEmpty() || FileCategory.PHOTO in categories) {
+            scanMediaStoreForMissingFiles(
+                uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection = arrayOf(
+                    MediaStore.Images.Media._ID,
+                    MediaStore.Images.Media.DATA,
+                    MediaStore.Images.Media.DISPLAY_NAME,
+                    MediaStore.Images.Media.SIZE,
+                    MediaStore.Images.Media.DATE_MODIFIED,
+                    MediaStore.Images.Media.MIME_TYPE
+                ),
+                category = FileCategory.PHOTO,
+                foundFiles = foundFiles
+            )
+        }
+
+        // Scan videos for missing files
+        if (categories.isEmpty() || FileCategory.VIDEO in categories) {
+            scanMediaStoreForMissingFiles(
+                uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                projection = arrayOf(
+                    MediaStore.Video.Media._ID,
+                    MediaStore.Video.Media.DATA,
+                    MediaStore.Video.Media.DISPLAY_NAME,
+                    MediaStore.Video.Media.SIZE,
+                    MediaStore.Video.Media.DATE_MODIFIED,
+                    MediaStore.Video.Media.MIME_TYPE
+                ),
+                category = FileCategory.VIDEO,
+                foundFiles = foundFiles
+            )
+        }
+
+        // Scan audio for missing files
+        if (categories.isEmpty() || FileCategory.AUDIO in categories) {
+            scanMediaStoreForMissingFiles(
+                uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                projection = arrayOf(
+                    MediaStore.Audio.Media._ID,
+                    MediaStore.Audio.Media.DATA,
+                    MediaStore.Audio.Media.DISPLAY_NAME,
+                    MediaStore.Audio.Media.SIZE,
+                    MediaStore.Audio.Media.DATE_MODIFIED,
+                    MediaStore.Audio.Media.MIME_TYPE
+                ),
+                category = FileCategory.AUDIO,
+                foundFiles = foundFiles
+            )
+        }
+
+        // Scan downloads for missing files (Android 10+)
+        if (categories.isEmpty() || FileCategory.DOCUMENT in categories) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                scanMediaStoreForMissingFiles(
+                    uri = MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                    projection = arrayOf(
+                        MediaStore.Downloads._ID,
+                        MediaStore.Downloads.DATA,
+                        MediaStore.Downloads.DISPLAY_NAME,
+                        MediaStore.Downloads.SIZE,
+                        MediaStore.Downloads.DATE_MODIFIED,
+                        MediaStore.Downloads.MIME_TYPE
+                    ),
+                    category = FileCategory.DOCUMENT,
+                    foundFiles = foundFiles
+                )
+            }
+        }
+    }
+
+    /**
+     * Scan a MediaStore collection for entries where the actual file is missing
+     */
+    private fun scanMediaStoreForMissingFiles(
+        uri: Uri,
+        projection: Array<String>,
+        category: FileCategory,
+        foundFiles: MutableList<FoundFileInfo>
+    ) {
+        try {
+            val cursor: Cursor? = context.contentResolver.query(
+                uri, projection, null, null,
+                "${MediaStore.Images.Media.DATE_MODIFIED} DESC"
+            )
+
+            cursor?.use {
+                val dataColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+                val nameColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
+                val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
+                val dateColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
+                val mimeColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+
+                while (it.moveToNext()) {
+                    try {
+                        val path = it.getString(dataColumn) ?: continue
+                        val name = it.getString(nameColumn) ?: continue
+                        val size = it.getLong(sizeColumn)
+                        val date = it.getLong(dateColumn) * 1000
+                        val mimeType = it.getString(mimeColumn)
+
+                        val file = File(path)
+                        
+                        // KEY: Only include if the file is MISSING (deleted but entry remains)
+                        // This is the primary way to find deleted files!
+                        if (file.exists()) continue
+                        
+                        // Skip if already found
+                        if (foundFiles.any { f -> f.path == path }) continue
+
+                        val extension = File(path).extension.lowercase()
+
+                        foundFiles.add(FoundFileInfo(
+                            path = path,
+                            fileName = name,
+                            fileSize = size,
+                            extension = extension,
+                            mimeType = mimeType ?: getMimeTypeForExtension(extension),
+                            category = category,
+                            signatureName = null,
+                            confidence = RecoveryConfidence.HIGH, // High confidence - was in MediaStore
+                            lastModified = date,
+                            isRootRequired = false,
+                            sourcePath = path,
+                            metadata = mapOf(
+                                "source" to "mediastore_deleted",
+                                "file_name" to name,
+                                "file_size" to size.toString(),
+                                "file_missing" to "true"
+                            )
+                        ))
+                    } catch (_: Exception) {
+                        // Skip problematic entries
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // Ignore MediaStore errors
+        }
+    }
+
+    /**
+     * Scan a directory for files - used for trash/cache directories
      */
     private suspend fun scanDirectory(
         directory: File,
@@ -329,46 +486,117 @@ class QuickScanner @Inject constructor(
         if (directory.canonicalPath in scannedPaths) return
         if (!directory.canRead()) return
 
+        // Skip directories that contain normal existing files
+        val dirName = directory.name
+        if (dirName in SKIP_DIRECTORIES && !isLikelyDeleted) return
+
         scannedPaths.add(directory.canonicalPath)
 
         val files = directory.listFiles() ?: return
 
         for (file in files) {
-            if (!currentCoroutineContext().isActive) return // فحص الإلغاء
+            if (!currentCoroutineContext().isActive) return
 
             try {
                 if (file.isDirectory) {
-                    // المسح المتكرر في الدلائل الفرعية
+                    // Recursively scan subdirectories
                     scanDirectory(
                         file, foundFiles, scannedPaths, categories,
                         maxDepth - 1, confidence, isLikelyDeleted
                     )
                 } else if (file.isFile && file.length() >= MIN_FILE_SIZE) {
-                    // فحص الملف وتحديد نوعه
                     val fileInfo = identifyFile(file, categories, confidence, isLikelyDeleted)
                     if (fileInfo != null) {
                         foundFiles.add(fileInfo)
                     }
                 }
             } catch (_: SecurityException) {
-                // تجاهل الملفات التي لا يمكن قراءتها
+                // Ignore unreadable files
             } catch (_: Exception) {
-                // تجاهل الأخطاء الفردية واستكمال المسح
+                // Ignore individual errors
             }
         }
     }
 
     /**
-     * التعرف على نوع الملف باستخدام التوقيعات
-     *
-     * يقرأ رأس الملف ويقارنه مع قاعدة بيانات التوقيعات
-     * لتحديد نوع الملف الفعلي (قد يختلف عن الامتداد)
-     *
-     * @param file الملف المراد التعرف عليه
-     * @param categories فئات الملفات المطلوبة
-     * @param confidence مستوى الثقة
-     * @param isLikelyDeleted هل يرجح أن الملف محذوف
-     * @return معلومات الملف أو null إذا لم يكن من الأنواع المطلوبة
+     * Scan a directory ONLY for files with deleted indicators
+     * Used for user-specified paths - we don't want to scan all files, only potential deleted ones
+     */
+    private suspend fun scanDirectoryForDeletedFilesOnly(
+        directory: File,
+        foundFiles: MutableList<FoundFileInfo>,
+        scannedPaths: MutableSet<String>,
+        categories: List<FileCategory>,
+        maxDepth: Int = 4
+    ) {
+        if (maxDepth <= 0) return
+        if (!directory.exists() || !directory.isDirectory) return
+        if (directory.canonicalPath in scannedPaths) return
+        if (!directory.canRead()) return
+
+        // Skip standard media directories - they contain normal files
+        val dirName = directory.name
+        if (dirName in SKIP_DIRECTORIES) return
+
+        scannedPaths.add(directory.canonicalPath)
+
+        val files = directory.listFiles() ?: return
+
+        for (file in files) {
+            if (!currentCoroutineContext().isActive) return
+
+            try {
+                if (file.isDirectory) {
+                    // Check if directory name suggests it's a trash/deleted folder
+                    val lowerDirName = file.name.lowercase()
+                    val isTrashDir = TRASH_PATTERNS.any { pattern -> 
+                        lowerDirName.contains(pattern.lowercase()) 
+                    }
+                    
+                    if (isTrashDir) {
+                        // This is a trash folder - scan all files
+                        scanDirectory(
+                            file, foundFiles, scannedPaths, categories,
+                            maxDepth - 1, RecoveryConfidence.HIGH, true
+                        )
+                    } else {
+                        // Not a trash folder - continue looking for trash folders
+                        scanDirectoryForDeletedFilesOnly(
+                            file, foundFiles, scannedPaths, categories, maxDepth - 1
+                        )
+                    }
+                } else if (file.isFile && file.length() >= MIN_FILE_SIZE) {
+                    // Check if file name suggests it's deleted
+                    val lowerFileName = file.name.lowercase()
+                    val isDeletedFile = DELETED_FILE_PATTERNS.any { pattern ->
+                        lowerFileName.contains(pattern)
+                    }
+                    
+                    // Also check if file is in a trash-like path
+                    val parentPath = file.parent?.lowercase() ?: ""
+                    val isInTrashPath = TRASH_PATTERNS.any { pattern ->
+                        parentPath.contains(pattern.lowercase())
+                    }
+                    
+                    if (isDeletedFile || isInTrashPath) {
+                        val fileInfo = identifyFile(
+                            file, categories, 
+                            RecoveryConfidence.HIGH, 
+                            true
+                        )
+                        if (fileInfo != null) {
+                            foundFiles.add(fileInfo)
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                // Ignore individual errors
+            }
+        }
+    }
+
+    /**
+     * Identify a file using signatures
      */
     private fun identifyFile(
         file: File,
@@ -380,31 +608,30 @@ class QuickScanner @Inject constructor(
             val extension = file.extension.lowercase()
             val fileSize = file.length()
 
-            // أولاً: محاولة التعرف بواسطة الامتداد (أسرع)
+            // First: Try to identify by extension (faster)
             var category = categorizeByExtension(extension)
 
-            // ثانياً: التحقق بواسطة التوقيعات (أدق)
+            // Second: Verify with signatures (more accurate)
             val header = readFileHeader(file)
             val signature = if (header != null) {
                 FileSignatures.identifyFileType(header, category)
             } else null
 
-            // إذا وجدنا توقيعاً، نستخدم معلوماته
+            // If we found a signature, use its info
             if (signature != null) {
                 category = signature.category
             }
 
-            // التحقق من أن الفئة مطلوبة
+            // Check if category is requested
             if (categories.isNotEmpty() && category !in categories) {
                 return null
             }
 
-            // التحقق من أن الملف قابل للاستعادة
-            // الملفات في دلائل المحذوفات أو المخفية هي المرشحة الرئيسية
+            // Determine confidence level
             val actualConfidence = when {
                 isLikelyDeleted -> confidence
                 file.isHidden -> RecoveryConfidence.MEDIUM
-                else -> RecoveryConfidence.HIGH // ملف موجود ويمكن الوصول إليه
+                else -> confidence
             }
 
             return FoundFileInfo(
@@ -419,7 +646,7 @@ class QuickScanner @Inject constructor(
                 lastModified = file.lastModified(),
                 isRootRequired = false,
                 sourcePath = file.absolutePath,
-                metadata = buildMetadataMap(file, signature)
+                metadata = buildMetadataMap(file, signature, isLikelyDeleted)
             )
         } catch (_: Exception) {
             return null
@@ -427,10 +654,7 @@ class QuickScanner @Inject constructor(
     }
 
     /**
-     * قراءة رأس الملف (البايتات الأولى)
-     *
-     * @param file الملف المراد قراءة رأسه
-     * @return مصفوفة البايتات أو null في حالة الفشل
+     * Read file header (first bytes)
      */
     private fun readFileHeader(file: File): ByteArray? {
         return try {
@@ -453,7 +677,7 @@ class QuickScanner @Inject constructor(
     }
 
     /**
-     * تصنيف الملف بناءً على الامتداد فقط (سريع لكن أقل دقة)
+     * Categorize file by extension
      */
     private fun categorizeByExtension(extension: String): FileCategory {
         return when (extension) {
@@ -481,7 +705,7 @@ class QuickScanner @Inject constructor(
     }
 
     /**
-     * الحصول على نوع MIME من الامتداد
+     * Get MIME type from extension
      */
     private fun getMimeTypeForExtension(extension: String): String {
         return when (extension) {
@@ -509,9 +733,13 @@ class QuickScanner @Inject constructor(
     }
 
     /**
-     * بناء خريطة البيانات الوصفية للملف
+     * Build metadata map for file
      */
-    private fun buildMetadataMap(file: File, signature: FileSignatures.FileSignature?): Map<String, String> {
+    private fun buildMetadataMap(
+        file: File, 
+        signature: FileSignatures.FileSignature?,
+        isLikelyDeleted: Boolean
+    ): Map<String, String> {
         val metadata = mutableMapOf<String, String>()
         metadata["file_name"] = file.name
         metadata["file_size"] = file.length().toString()
@@ -519,6 +747,7 @@ class QuickScanner @Inject constructor(
         metadata["is_hidden"] = file.isHidden.toString()
         metadata["is_readable"] = file.canRead().toString()
         metadata["parent_dir"] = file.parent ?: ""
+        metadata["is_likely_deleted"] = isLikelyDeleted.toString()
         signature?.let {
             metadata["signature_name"] = it.name
             metadata["detected_mime"] = it.mimeType
@@ -527,91 +756,30 @@ class QuickScanner @Inject constructor(
     }
 
     // ──────────────────────────────────────────────
-    // دوال اكتشاف الدلائل
+    // Directory discovery functions
     // ──────────────────────────────────────────────
 
     /**
-     * الحصول على مسارات المسح الافتراضية
-     */
-    private fun getDefaultScanPaths(): List<String> {
-        val paths = mutableListOf<String>()
-        val externalStorage = Environment.getExternalStorageDirectory().absolutePath
-
-        // الدلائل القياسية
-        paths.add("$externalStorage/DCIM")
-        paths.add("$externalStorage/Pictures")
-        paths.add("$externalStorage/Movies")
-        paths.add("$externalStorage/Music")
-        paths.add("$externalStorage/Downloads")
-        paths.add("$externalStorage/Documents")
-        paths.add("$externalStorage/Recordings")
-        paths.add("$externalStorage/Audiobooks")
-        paths.add("$externalStorage/Podcasts")
-        paths.add("$externalStorage/Notifications")
-        paths.add("$externalStorage/Ringtones")
-        paths.add("$externalStorage/Alarms")
-
-        return paths.filter { File(it).exists() }
-    }
-
-    /**
-     * الحصول على دلائل الوسائط القياسية
-     */
-    private fun getStandardMediaDirectories(): List<String> {
-        val dirs = mutableListOf<String>()
-        val externalStorage = Environment.getExternalStorageDirectory().absolutePath
-
-        dirs.add("$externalStorage/DCIM/Camera")
-        dirs.add("$externalStorage/DCIM/Screenshots")
-        dirs.add("$externalStorage/DCIM/ScreenRecorder")
-        dirs.add("$externalStorage/Pictures/Screenshots")
-        dirs.add("$externalStorage/Pictures/Edit")
-        dirs.add("$externalStorage/Movies")
-        dirs.add("$externalStorage/Music")
-        dirs.add("$externalStorage/Downloads")
-        dirs.add("$externalStorage/Documents")
-
-        // إضافة دلائل التخزين الثانوي (بطاقة SD)
-        try {
-            val externalDirs = context.getExternalFilesDirs(null)
-            for (dir in externalDirs) {
-                dir?.let {
-                    val storageRoot = it.absolutePath.substringBefore("/Android")
-                    dirs.add("$storageRoot/DCIM")
-                    dirs.add("$storageRoot/Pictures")
-                    dirs.add("$storageRoot/Movies")
-                    dirs.add("$storageRoot/Music")
-                    dirs.add("$storageRoot/Downloads")
-                }
-            }
-        } catch (_: Exception) {}
-
-        return dirs.filter { File(it).exists() }
-    }
-
-    /**
-     * البحث عن مجلدات المحذوفات
+     * Find trash/deleted directories
      */
     private fun findTrashDirectories(): List<String> {
         val dirs = mutableListOf<String>()
         val externalStorage = Environment.getExternalStorageDirectory().absolutePath
 
-        // مجلدات المحذوفات في التخزين الرئيسي
+        // Standard trash folders
         for (pattern in TRASH_PATTERNS) {
             dirs.add("$externalStorage/$pattern")
             dirs.add("$externalStorage/DCIM/$pattern")
             dirs.add("$externalStorage/Pictures/$pattern")
+            dirs.add("$externalStorage/Movies/$pattern")
+            dirs.add("$externalStorage/Music/$pattern")
+            dirs.add("$externalStorage/Downloads/$pattern")
         }
 
-        // مجلد محذوفات أندرويد الحديث (Android 11+)
+        // Android 11+ media trash folder
         dirs.add("$externalStorage/Android/data/com.android.providers.media/trash")
 
-        // مجلدات المحذوفات الخاصة بالتطبيقات
-        dirs.add("$externalStorage/WhatsApp/.Trash")
-        dirs.add("$externalStorage/WhatsApp/Media/.Trash")
-        dirs.add("$externalStorage/Telegram/.Trash")
-
-        // البحث عن مجلدات محذوفات غير معروفة
+        // Search for additional trash folders
         try {
             val root = File(externalStorage)
             root.listFiles()?.forEach { file ->
@@ -624,11 +792,30 @@ class QuickScanner @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        return dirs.filter { File(it).exists() }
+        return dirs.filter { File(it).exists() }.distinct()
     }
 
     /**
-     * البحث عن دلائل الصور المصغرة
+     * Find app-specific trash directories
+     */
+    private fun findAppTrashDirectories(): List<String> {
+        val dirs = mutableListOf<String>()
+        val externalStorage = Environment.getExternalStorageDirectory().absolutePath
+
+        for (appPath in APP_TRASH_PATHS) {
+            dirs.add("$externalStorage/$appPath")
+        }
+
+        // WhatsApp specific: .Sent and .Private folders may contain deleted files
+        dirs.add("$externalStorage/WhatsApp/Media/WhatsApp Images/.Sent")
+        dirs.add("$externalStorage/WhatsApp/Media/WhatsApp Images/Private")
+        dirs.add("$externalStorage/WhatsApp/Media/WhatsApp Video/.Sent")
+
+        return dirs.filter { File(it).exists() }.distinct()
+    }
+
+    /**
+     * Find thumbnail directories
      */
     private fun findThumbnailDirectories(): List<String> {
         val dirs = mutableListOf<String>()
@@ -639,7 +826,7 @@ class QuickScanner @Inject constructor(
             dirs.add("$externalStorage/Pictures/$pattern")
         }
 
-        // دلائل الصور المصغرة الخاصة بأندرويد
+        // Android thumbnail directory
         try {
             val thumbDataDir = File("$externalStorage/DCIM/.thumbnails")
             if (thumbDataDir.exists()) {
@@ -647,12 +834,12 @@ class QuickScanner @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        return dirs.filter { File(it).exists() }
+        return dirs.filter { File(it).exists() }.distinct()
     }
 
     /**
-     * البحث عن الدلائل التي تحتوي على ملف .nomedia
-     * هذه الدلائل مخفية من معرض الصور وقد تحتوي على ملفات مهمة
+     * Find directories containing .nomedia file
+     * These are hidden from gallery and may contain recoverable files
      */
     private fun findNomediaDirectories(): List<String> {
         val dirs = mutableListOf<String>()
@@ -680,54 +867,13 @@ class QuickScanner @Inject constructor(
     }
 
     /**
-     * البحث عن دلائل وسائط التطبيقات
-     */
-    private fun findAppMediaDirectories(): List<String> {
-        val dirs = mutableListOf<String>()
-        val externalStorage = Environment.getExternalStorageDirectory().absolutePath
-
-        for (app in APP_MEDIA_DIRS) {
-            // WhatsApp
-            if (app == "WhatsApp") {
-                dirs.add("$externalStorage/WhatsApp/Media")
-                dirs.add("$externalStorage/WhatsApp/Media/WhatsApp Images")
-                dirs.add("$externalStorage/WhatsApp/Media/WhatsApp Video")
-                dirs.add("$externalStorage/WhatsApp/Media/WhatsApp Audio")
-                dirs.add("$externalStorage/WhatsApp/Media/WhatsApp Documents")
-                dirs.add("$externalStorage/WhatsApp/Media/WhatsApp Animated Gifs")
-                dirs.add("$externalStorage/WhatsApp/Media/WhatsApp Voice Notes")
-                dirs.add("$externalStorage/WhatsApp Business/Media")
-                dirs.add("$externalStorage/WhatsApp/Media/WallPaper")
-            }
-            // Telegram
-            else if (app == "Telegram") {
-                dirs.add("$externalStorage/Telegram/Telegram Images")
-                dirs.add("$externalStorage/Telegram/Telegram Video")
-                dirs.add("$externalStorage/Telegram/Telegram Audio")
-                dirs.add("$externalStorage/Telegram/Telegram Documents")
-                dirs.add("$externalStorage/Telegram/Telegram Animated Gifs")
-                dirs.add("$externalStorage/Telegram/Telegram Stickers")
-            }
-            // تطبيقات أخرى
-            else {
-                dirs.add("$externalStorage/$app/Media")
-                dirs.add("$externalStorage/$app/$app Media")
-                dirs.add("$externalStorage/$app/Images")
-                dirs.add("$externalStorage/$app/Videos")
-            }
-        }
-
-        return dirs.filter { File(it).exists() }
-    }
-
-    /**
-     * البحث عن دلائل التخزين المؤقت
+     * Find cache/temp directories
      */
     private fun findCacheDirectories(): List<String> {
         val dirs = mutableListOf<String>()
         val externalStorage = Environment.getExternalStorageDirectory().absolutePath
 
-        // دلائل التخزين المؤقت للتطبيقات
+        // App cache directories
         try {
             val androidData = File("$externalStorage/Android/data")
             if (androidData.exists() && androidData.isDirectory) {
@@ -744,276 +890,12 @@ class QuickScanner @Inject constructor(
             }
         } catch (_: Exception) {}
 
-        // دلائل التخزين المؤقت الخاصة بالنظام
+        // System cache directories
         try {
             dirs.add(context.cacheDir.absolutePath)
             context.externalCacheDir?.let { dirs.add(it.absolutePath) }
         } catch (_: Exception) {}
 
         return dirs.filter { File(it).exists() }.distinct()
-    }
-
-    // ──────────────────────────────────────────────
-    // MediaStore API (بدون حاجة للروت)
-    // ──────────────────────────────────────────────
-
-    /**
-     * مسح MediaStore للوصول إلى ملفات الوسائط بدون حاجة للروت
-     *
-     * يستخدم ContentResolver للوصول إلى جميع ملفات الوسائط
-     * المسجلة في قاعدة بيانات النظام
-     *
-     * @param foundFiles قائمة النتائج
-     * @param categories فئات الملفات المطلوبة
-     */
-    private suspend fun scanMediaStore(
-        foundFiles: MutableList<FoundFileInfo>,
-        categories: List<FileCategory>
-    ) {
-        // مسح الصور
-        if (categories.isEmpty() || FileCategory.PHOTO in categories) {
-            scanMediaStoreCollection(
-                uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection = arrayOf(
-                    MediaStore.Images.Media._ID,
-                    MediaStore.Images.Media.DATA,
-                    MediaStore.Images.Media.DISPLAY_NAME,
-                    MediaStore.Images.Media.SIZE,
-                    MediaStore.Images.Media.DATE_MODIFIED,
-                    MediaStore.Images.Media.MIME_TYPE
-                ),
-                category = FileCategory.PHOTO,
-                foundFiles = foundFiles
-            )
-        }
-
-        // مسح الفيديوهات
-        if (categories.isEmpty() || FileCategory.VIDEO in categories) {
-            scanMediaStoreCollection(
-                uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                projection = arrayOf(
-                    MediaStore.Video.Media._ID,
-                    MediaStore.Video.Media.DATA,
-                    MediaStore.Video.Media.DISPLAY_NAME,
-                    MediaStore.Video.Media.SIZE,
-                    MediaStore.Video.Media.DATE_MODIFIED,
-                    MediaStore.Video.Media.MIME_TYPE
-                ),
-                category = FileCategory.VIDEO,
-                foundFiles = foundFiles
-            )
-        }
-
-        // مسح الملفات الصوتية
-        if (categories.isEmpty() || FileCategory.AUDIO in categories) {
-            scanMediaStoreCollection(
-                uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                projection = arrayOf(
-                    MediaStore.Audio.Media._ID,
-                    MediaStore.Audio.Media.DATA,
-                    MediaStore.Audio.Media.DISPLAY_NAME,
-                    MediaStore.Audio.Media.SIZE,
-                    MediaStore.Audio.Media.DATE_MODIFIED,
-                    MediaStore.Audio.Media.MIME_TYPE
-                ),
-                category = FileCategory.AUDIO,
-                foundFiles = foundFiles
-            )
-        }
-
-        // مسح الملفات المحملة (قد تحتوي على مستندات)
-        if (categories.isEmpty() || FileCategory.DOCUMENT in categories) {
-            scanDownloadsCollection(foundFiles, categories)
-        }
-    }
-
-    /**
-     * مسح مجموعة من MediaStore
-     */
-    private fun scanMediaStoreCollection(
-        uri: Uri,
-        projection: Array<String>,
-        category: FileCategory,
-        foundFiles: MutableList<FoundFileInfo>
-    ) {
-        try {
-            val cursor: Cursor? = context.contentResolver.query(
-                uri,
-                projection,
-                null,
-                null,
-                "${MediaStore.Images.Media.DATE_MODIFIED} DESC"
-            )
-
-            cursor?.use {
-                val idColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
-                val dataColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
-                val nameColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME)
-                val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.SIZE)
-                val dateColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_MODIFIED)
-                val mimeColumn = it.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
-
-                while (it.moveToNext()) {
-                    try {
-                        val path = it.getString(dataColumn)
-                        val name = it.getString(nameColumn)
-                        val size = it.getLong(sizeColumn)
-                        val date = it.getLong(dateColumn) * 1000 // تحويل إلى milliseconds
-                        val mimeType = it.getString(mimeColumn)
-
-                        // التحقق من وجود الملف
-                        val file = File(path)
-                        if (!file.exists() || file.length() < MIN_FILE_SIZE) continue
-
-                        // التحقق من عدم وجود الملف مسبقاً
-                        if (foundFiles.any { f -> f.path == path }) continue
-
-                        val extension = file.extension.lowercase()
-
-                        foundFiles.add(FoundFileInfo(
-                            path = path,
-                            fileName = name,
-                            fileSize = size,
-                            extension = extension,
-                            mimeType = mimeType ?: getMimeTypeForExtension(extension),
-                            category = category,
-                            signatureName = null,
-                            confidence = RecoveryConfidence.HIGH,
-                            lastModified = date,
-                            isRootRequired = false,
-                            sourcePath = path,
-                            metadata = mapOf(
-                                "source" to "mediastore",
-                                "file_name" to name,
-                                "file_size" to size.toString()
-                            )
-                        ))
-                    } catch (_: Exception) {
-                        // تجاهل الملفات ذات المشاكل
-                    }
-                }
-            }
-        } catch (_: Exception) {
-            // تجاهل أخطاء MediaStore
-        }
-    }
-
-    /**
-     * مسح مجلد التحميلات عبر MediaStore
-     */
-    private suspend fun scanDownloadsCollection(
-        foundFiles: MutableList<FoundFileInfo>,
-        categories: List<FileCategory>
-    ) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            scanDownloadsCollectionQ(foundFiles, categories)
-        } else {
-            scanDownloadsCollectionLegacy(foundFiles, categories)
-        }
-    }
-
-    /**
-     * مسح مجلد التحميلات للإصدارات القديمة (Android 9 وأقل)
-     */
-    private suspend fun scanDownloadsCollectionLegacy(
-        foundFiles: MutableList<FoundFileInfo>,
-        categories: List<FileCategory>
-    ) {
-        try {
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            if (downloadsDir.exists() && downloadsDir.isDirectory) {
-                scanDirectory(
-                    downloadsDir,
-                    foundFiles,
-                    mutableSetOf(),
-                    categories,
-                    maxDepth = 3
-                )
-            }
-        } catch (_: Exception) {
-            // تجاهل أخطاء Downloads
-        }
-    }
-
-    /**
-     * مسح مجلد التحميلات عبر MediaStore (Android 10+)
-     */
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private fun scanDownloadsCollectionQ(
-        foundFiles: MutableList<FoundFileInfo>,
-        categories: List<FileCategory>
-    ) {
-        try {
-            val downloadsUri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
-
-            val projection = arrayOf(
-                MediaStore.Downloads._ID,
-                MediaStore.Downloads.DATA,
-                MediaStore.Downloads.DISPLAY_NAME,
-                MediaStore.Downloads.SIZE,
-                MediaStore.Downloads.DATE_MODIFIED,
-                MediaStore.Downloads.MIME_TYPE
-            )
-
-            val cursor: Cursor? = context.contentResolver.query(
-                downloadsUri,
-                projection,
-                null,
-                null,
-                "${MediaStore.Downloads.DATE_MODIFIED} DESC"
-            )
-
-            cursor?.use {
-                val idColumn = it.getColumnIndexOrThrow(MediaStore.Downloads._ID)
-                val dataColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.DATA)
-                val nameColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.DISPLAY_NAME)
-                val sizeColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.SIZE)
-                val dateColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.DATE_MODIFIED)
-                val mimeColumn = it.getColumnIndexOrThrow(MediaStore.Downloads.MIME_TYPE)
-
-                while (it.moveToNext()) {
-                    try {
-                        val path = it.getString(dataColumn)
-                        val name = it.getString(nameColumn)
-                        val size = it.getLong(sizeColumn)
-                        val date = it.getLong(dateColumn) * 1000
-                        val mimeType = it.getString(mimeColumn)
-
-                        val file = File(path)
-                        if (!file.exists() || file.length() < MIN_FILE_SIZE) continue
-                        if (foundFiles.any { f -> f.path == path }) continue
-
-                        val extension = file.extension.lowercase()
-                        val category = categorizeByExtension(extension)
-
-                        // فقط الملفات من الفئات المطلوبة
-                        if (categories.isNotEmpty() && category !in categories) continue
-
-                        foundFiles.add(FoundFileInfo(
-                            path = path,
-                            fileName = name,
-                            fileSize = size,
-                            extension = extension,
-                            mimeType = mimeType ?: getMimeTypeForExtension(extension),
-                            category = category,
-                            signatureName = null,
-                            confidence = RecoveryConfidence.HIGH,
-                            lastModified = date,
-                            isRootRequired = false,
-                            sourcePath = path,
-                            metadata = mapOf(
-                                "source" to "downloads",
-                                "file_name" to name,
-                                "file_size" to size.toString()
-                            )
-                        ))
-                    } catch (_: Exception) {
-                        // تجاهل الملفات ذات المشاكل
-                    }
-                }
-            }
-        } catch (_: Exception) {
-            // تجاهل أخطاء Downloads
-        }
     }
 }
