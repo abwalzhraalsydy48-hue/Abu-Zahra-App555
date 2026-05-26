@@ -811,7 +811,6 @@ class DeepScanner @Inject constructor() {
         }
         return nonZeroCount > 10
     }
-}
 
     /**
      * مسح الدلائل بشكل متكرر للبحث عن الملفات المحذوفة
