@@ -12,6 +12,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.view.View
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
@@ -327,6 +328,7 @@ class PreviewActivity : AppCompatActivity() {
     /**
      * تصدير باستخدام MediaStore API (Android 10+)
      */
+    @RequiresApi(Build.VERSION_CODES.Q)
     private fun exportViaMediaStore(sourceFile: File) {
         val contentValues = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)

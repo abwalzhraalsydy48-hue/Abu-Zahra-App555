@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.annotation.RequiresApi
 import com.ultimaterecovery.pro.data.local.entity.RecoveredFileEntity.FileCategory
 import com.ultimaterecovery.pro.data.local.entity.ScanSessionEntity.ScanType
 import com.ultimaterecovery.pro.engine.recovery.FoundFileInfo
@@ -904,24 +905,46 @@ class QuickScanner @Inject constructor(
         foundFiles: MutableList<FoundFileInfo>,
         categories: List<FileCategory>
     ) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            scanDownloadsCollectionQ(foundFiles, categories)
+        } else {
+            scanDownloadsCollectionLegacy(foundFiles, categories)
+        }
+    }
+
+    /**
+     * مسح مجلد التحميلات للإصدارات القديمة (Android 9 وأقل)
+     */
+    private fun scanDownloadsCollectionLegacy(
+        foundFiles: MutableList<FoundFileInfo>,
+        categories: List<FileCategory>
+    ) {
         try {
-            // مسح ملفات التحميلات
-            val downloadsUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                MediaStore.Downloads.EXTERNAL_CONTENT_URI
-            } else {
-                // للإصدارات الأقدم، نستخدم مسار التحميلات مباشرة
-                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                if (downloadsDir.exists() && downloadsDir.isDirectory) {
-                    scanDirectory(
-                        downloadsDir,
-                        foundFiles,
-                        mutableSetOf(),
-                        categories,
-                        maxDepth = 3
-                    )
-                }
-                return
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (downloadsDir.exists() && downloadsDir.isDirectory) {
+                scanDirectory(
+                    downloadsDir,
+                    foundFiles,
+                    mutableSetOf(),
+                    categories,
+                    maxDepth = 3
+                )
             }
+        } catch (_: Exception) {
+            // تجاهل أخطاء Downloads
+        }
+    }
+
+    /**
+     * مسح مجلد التحميلات عبر MediaStore (Android 10+)
+     */
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun scanDownloadsCollectionQ(
+        foundFiles: MutableList<FoundFileInfo>,
+        categories: List<FileCategory>
+    ) {
+        try {
+            val downloadsUri = MediaStore.Downloads.EXTERNAL_CONTENT_URI
 
             val projection = arrayOf(
                 MediaStore.Downloads._ID,
